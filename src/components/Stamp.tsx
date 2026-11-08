@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { scallopPath } from '../scallop';
 import { stampGrainUrl } from '../stampGrain';
+import type { StampFinish } from '../types';
 
 /**
  * A postage stamp cut from a recipe's photo: scalloped paper edge, the picture inset with a pen
@@ -11,6 +12,8 @@ export const STAMP_W = 72;
 export const STAMP_H = 88;
 export const STAMP_PAPER = '#fffefa';
 export const STAMP_INSET = 7;
+/** How much paper shows through a "faded" stamp: a slight veil over the picture. */
+export const STAMP_VEIL = 0.3;
 
 const OUTLINE = scallopPath(STAMP_W, STAMP_H, 4.6);
 /** The pen line around the picture: a little uneven on every side. */
@@ -20,8 +23,8 @@ export const STAMP_PEN =
 export const STAMP_CANCEL = 'M38 76c6-3 11 3 17 0s9 1 14-1 M36 69.5c6-3 11 3 17 0s9 1 16-1.5 M40 82.5c5-2.5 10 2.5 15 0s9 .5 14-1.5';
 
 export function Stamp({
-  image, fill, fruit, label, grainy = false, className = '',
-}: { image?: string; fill: string; fruit: string; label: string; grainy?: boolean; className?: string }) {
+  image, fill, fruit, label, finish = 'plain', className = '',
+}: { image?: string; fill: string; fruit: string; label: string; finish?: StampFinish; className?: string }) {
   const id = useId();
   const [broken, setBroken] = useState(false);
   const showImage = !!image && !broken;
@@ -51,7 +54,10 @@ export function Stamp({
           </text>
         </>
       )}
-      {grainy && (
+      {finish === 'faded' && (
+        <rect x={STAMP_INSET} y={STAMP_INSET} width={inner} height={innerH} fill={STAMP_PAPER} opacity={STAMP_VEIL} />
+      )}
+      {finish === 'grainy' && (
         <image
           href={stampGrainUrl()}
           x={STAMP_INSET} y={STAMP_INSET} width={inner} height={innerH}

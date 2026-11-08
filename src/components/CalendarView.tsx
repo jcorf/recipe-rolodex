@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MONTH_NAMES, addMonths } from '../dates';
-import type { Recipe } from '../types';
+import { STAMP_FINISHES, type Recipe, type StampFinish } from '../types';
 import { cardLook, InkFrame, InkRule, PenCircle } from './ink';
 import { ActionTag } from './ActionTag';
 import { PenIcon } from './PenIcons';
@@ -17,10 +17,10 @@ export function cookedByDay(recipes: Recipe[]) {
 }
 
 export function CalendarView({
-  recipes, look, onOpenRecipe, onShare, onClose, onGrainy, paused = false,
+  recipes, look, onOpenRecipe, onShare, onClose, onFinish, paused = false,
 }: {
-  /** Turn the worn, speckled print look on or off (saved as a setting). */
-  onGrainy: (on: boolean) => void;
+  /** Choose how the stamps are finished: plain, grainy or faded (saved as a setting). */
+  onFinish: (finish: StampFinish) => void;
   /** A share sheet is open on top: leave the keys to it. */
   paused?: boolean;
   recipes: Recipe[];
@@ -98,13 +98,24 @@ export function CalendarView({
                 seed={seed}
                 onStamp={(r) => onOpenRecipe(r)}
               />
-              <label className={`sort-option calendar-option ${look.grainy ? 'is-chosen' : ''}`}>
-                <input type="checkbox" className="visually-hidden" checked={!!look.grainy} onChange={(e) => onGrainy(e.target.checked)} />
-                <span className="sort-label">
-                  grainy stamps
-                  {look.grainy && <PenCircle variant={5} />}
-                </span>
-              </label>
+              <div role="radiogroup" aria-label="How the stamps are finished" className="calendar-finish">
+                <span>stamps</span>
+                {STAMP_FINISHES.map((f, i) => (
+                  <label key={f.key} className={`sort-option ${look.finish === f.key || (!look.finish && f.key === 'plain') ? 'is-chosen' : ''}`}>
+                    <input
+                      type="radio"
+                      name="stamp-finish"
+                      className="visually-hidden"
+                      checked={(look.finish ?? 'plain') === f.key}
+                      onChange={() => onFinish(f.key)}
+                    />
+                    <span className="sort-label">
+                      {f.label}
+                      {(look.finish ?? 'plain') === f.key && <PenCircle variant={i + 4} />}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
         </div>

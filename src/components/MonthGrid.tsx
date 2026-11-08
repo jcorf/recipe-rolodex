@@ -1,5 +1,5 @@
 import { MONTH_NAMES, WEEKDAYS, monthWeeks, stampTilt, todayYmd } from '../dates';
-import type { Recipe } from '../types';
+import type { Recipe, StampFinish } from '../types';
 import { Stamp } from './Stamp';
 import { dividerFruit } from './FruitMark';
 
@@ -7,8 +7,8 @@ import { dividerFruit } from './FruitMark';
 export interface StampLook {
   colors: Record<string, string>;
   fruits: Record<string, string>;
-  /** The worn, speckled print look (a setting). */
-  grainy?: boolean;
+  /** How stamps are finished (a setting): plain, grainy or faded. */
+  finish?: StampFinish;
 }
 
 export const stampFill = (r: Recipe, look: StampLook) => look.colors[r.category || 'unsorted'] ?? '#e4e2dd';
@@ -51,7 +51,7 @@ export function MonthGrid({
                 <>
                   <span className="day-num">{Number(day.slice(8))}</span>
                   {shown.map((r, n) => {
-                    const stamp = <Stamp image={r.image} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} grainy={look.grainy} />;
+                    const stamp = <Stamp image={r.image} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} finish={look.finish} />;
                     const cls = `day-stamp is-${shown.length}-${n}`;
                     const lean = { rotate: `${stampTilt(r.id, day, seed)}deg` };
                     return onStamp && !onDay ? (

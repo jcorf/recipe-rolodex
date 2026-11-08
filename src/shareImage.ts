@@ -6,7 +6,7 @@ import { MONTH_NAMES, WEEKDAYS, monthWeeks, stampTilt } from './dates';
 import { stampGrain } from './stampGrain';
 import { abbreviateUnits, servesLabel, splitAmount, stepText } from './recipeText';
 import { scallopPath } from './scallop';
-import { STAMP_CANCEL, STAMP_H, STAMP_INSET, STAMP_PAPER, STAMP_PEN, STAMP_W } from './components/Stamp';
+import { STAMP_CANCEL, STAMP_H, STAMP_INSET, STAMP_PAPER, STAMP_PEN, STAMP_VEIL, STAMP_W } from './components/Stamp';
 import type { Recipe, Settings } from './types';
 
 /**
@@ -25,6 +25,8 @@ const LABEL_FONT = 'La Belle Aurore';
 export interface ShareContext {
   recipeFont: Settings['recipeFont'];
   look: StampLook;
+  /** The cursor-glow colours the owner picked, as "r g b": they tint the desk behind the picture. */
+  glow: { warm: string; cool: string };
 }
 
 export interface MonthLook {
@@ -102,17 +104,24 @@ async function cottonSheet(w: number, h: number, id: string) {
 }
 
 /** The picture of a finished sheet: the desk, the sheet's soft shadow, and a signature underneath. */
-function onDesk(sheet: HTMLCanvasElement, w: number, h: number, margin: number) {
+function onDesk(sheet: HTMLCanvasElement, w: number, h: number, margin: number, glow: ShareContext['glow']) {
   const W = w + margin * 2;
   const H = h + margin * 2 + 22;
   const { canvas, ctx } = newCanvas(W, H);
   ctx.fillStyle = DESK;
   ctx.fillRect(0, 0, W, H);
-  const glow = ctx.createRadialGradient(W * 0.2, H * 0.1, 0, W * 0.2, H * 0.1, W * 0.9);
-  glow.addColorStop(0, 'rgba(247,215,199,.55)');
-  glow.addColorStop(1, 'rgba(247,215,199,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
+  // the page's two lights: the warm one up by the cursor, the cool one drifting in the far corner
+  const light = (cx: number, cy: number, rgb: string, strength: number) => {
+    const [r, g, b] = rgb.split(' ');
+    const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.95);
+    g2.addColorStop(0, `rgba(${r},${g},${b},${strength})`);
+    g2.addColorStop(0.55, `rgba(${r},${g},${b},${strength * 0.35})`);
+    g2.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, W, H);
+  };
+  light(W * 0.2, H * 0.12, glow.warm, 0.9);
+  light(W * 0.85, H * 0.92, glow.cool, 0.85);
   ctx.save();
   ctx.shadowColor = 'rgba(60,55,50,.3)';
   ctx.shadowBlur = 26 * SCALE;
@@ -173,7 +182,7 @@ function drawStar(ctx: CanvasRenderingContext2D, variant: number, fill: number, 
 }
 
 /** A recipe card as a picture: the open card, on the desk. */
-export async function renderRecipeImage(recipe: Recipe, { recipeFont }: ShareContext): Promise<Blob> {
+export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow }: ShareContext): Promise<Blob> {
   const hand = handFamily(recipeFont);
   const handPx = handSize(recipeFont);
   const lower = recipeFont !== 'print';
@@ -329,7 +338,7 @@ export async function renderRecipeImage(recipe: Recipe, { recipeFont }: ShareCon
     c.textAlign = 'left';
 
     const margin = 40;
-    const out = onDesk(sheet, CW, CH, margin);
+    const out = onDesk(sheet, CW, CH, margin, glow);
     signature(out.ctx, out.W, out.H);
     return toBlob(out.canvas);
   }
@@ -368,7 +377,13 @@ function drawStamp(
     c.fillText(stampFruit(recipe, look), STAMP_W / 2, STAMP_H / 2 + 14);
     c.textAlign = 'left';
   }
-  if (look.grainy) c.drawImage(stampGrain(), STAMP_INSET, STAMP_INSET, iw, ih);
+  if (look.finish === 'grainy') c.drawImage(stampGrain(), STAMP_INSET, STAMP_INSET, iw, ih);
+  if (look.finish === 'faded') {
+    c.globalAlpha = STAMP_VEIL;
+    c.fillStyle = STAMP_PAPER;
+    c.fillRect(STAMP_INSET, STAMP_INSET, iw, ih);
+    c.globalAlpha = 1;
+  }
   c.strokeStyle = INK;
   c.lineCap = 'round';
   c.lineWidth = 1;
@@ -383,7 +398,7 @@ function drawStamp(
 }
 
 /** A month of the calendar as a picture, a stamp on every day something was cooked. */
-export async function renderMonthImage(year: number, month: number, recipes: Recipe[], { recipeFont, look }: ShareContext, { seed }: MonthLook): Promise<Blob> {
+export async function renderMonthImage(year: number, month: number, recipes: Recipe[], { recipeFont, look, glow }: ShareContext, { seed }: MonthLook): Promise<Blob> {
   const hand = handFamily(recipeFont === 'print' ? 'hand' : recipeFont);
   await ensureFonts([LABEL_FONT, hand]);
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -473,7 +488,7 @@ export async function renderMonthImage(year: number, month: number, recipes: Rec
     });
   });
 
-  const out = onDesk(sheet, CW, CH, 40);
+  const out = onDesk(sheet, CW, CH, 40, glow);
   signature(out.ctx, out.W, out.H);
   return toBlob(out.canvas);
 }
