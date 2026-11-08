@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import { scallopPath } from '../scallop';
+import { stampGrainUrl } from '../stampGrain';
 
 /**
  * A postage stamp cut from a recipe's photo: scalloped paper edge, the picture inset with a pen
@@ -19,8 +20,8 @@ export const STAMP_PEN =
 export const STAMP_CANCEL = 'M38 76c6-3 11 3 17 0s9 1 14-1 M36 69.5c6-3 11 3 17 0s9 1 16-1.5 M40 82.5c5-2.5 10 2.5 15 0s9 .5 14-1.5';
 
 export function Stamp({
-  image, fill, fruit, label, className = '',
-}: { image?: string; fill: string; fruit: string; label: string; className?: string }) {
+  image, fill, fruit, label, grainy = false, className = '',
+}: { image?: string; fill: string; fruit: string; label: string; grainy?: boolean; className?: string }) {
   const id = useId();
   const [broken, setBroken] = useState(false);
   const showImage = !!image && !broken;
@@ -49,6 +50,14 @@ export function Stamp({
             {fruit}
           </text>
         </>
+      )}
+      {grainy && (
+        <image
+          href={stampGrainUrl()}
+          x={STAMP_INSET} y={STAMP_INSET} width={inner} height={innerH}
+          preserveAspectRatio="none"
+          clipPath={`url(#${id}c)`}
+        />
       )}
       <path d={STAMP_PEN} fill="none" stroke="#3d3c40" strokeWidth="0.9" strokeLinejoin="round" opacity="0.75" />
       <path d={STAMP_CANCEL} fill="none" stroke="#3d3c40" strokeWidth="1" strokeLinecap="round" opacity="0.32" clipPath={`url(#${id}c)`} />

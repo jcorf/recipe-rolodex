@@ -53,6 +53,8 @@ export const DEFAULT_SETTINGS = {
   showFind: true,
   /** The paper-flick sound when a card flips. */
   flipSound: true,
+  /** Stamps on the calendar get a worn, speckled print texture. */
+  grainyStamps: false,
   /** Colours the cursor glow drifts between. */
   glowPalette: 'peach',
   /** Pastel stock for each category divider card. */

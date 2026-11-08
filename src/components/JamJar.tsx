@@ -48,7 +48,7 @@ function HelpNote() {
 }
 
 export function JamJar({
-  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, exportFormat, onExportFormat, onImportFiles, flipSound, onFlipSound, glowPalette, onGlowPalette,
+  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, exportFormat, onExportFormat, onImportFiles, flipSound, onFlipSound, grainyStamps, onGrainyStamps, glowPalette, onGlowPalette,
 }: {
   sortBy: SortBy;
   onSortBy: (sortBy: SortBy) => void;
@@ -67,6 +67,9 @@ export function JamJar({
   /** The paper-flick sound when a card flips. */
   flipSound: boolean;
   onFlipSound: (on: boolean) => void;
+  /** Stamps on the calendar get a worn, speckled print texture. */
+  grainyStamps: boolean;
+  onGrainyStamps: (on: boolean) => void;
   /** The colours the cursor glow drifts between. */
   glowPalette: GlowKey;
   onGlowPalette: (glow: GlowKey) => void;
@@ -155,6 +158,13 @@ export function JamJar({
                 <span className="sort-label">
                   flip sound
                   {flipSound && <PenCircle variant={4} />}
+                </span>
+              </label>
+              <label className={`sort-option ${grainyStamps ? 'is-chosen' : ''}`}>
+                <input type="checkbox" className="visually-hidden" checked={grainyStamps} onChange={(e) => onGrainyStamps(e.target.checked)} />
+                <span className="sort-label">
+                  grainy stamps
+                  {grainyStamps && <PenCircle variant={5} />}
                 </span>
               </label>
             </div>

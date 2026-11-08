@@ -141,7 +141,7 @@ export default function App() {
 
   const close = useCallback(() => setOpen(null), []);
 
-  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {} };
+  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {}, grainy: settings?.grainyStamps ?? false };
   const closeShare = useCallback(() => setShare(null), []);
   const closeCalendar = useCallback(() => setCalendarOpen(false), []);
   const shareRecipe = share?.kind === 'recipe' ? recipes.find((r) => r.id === share.id) : undefined;
@@ -220,6 +220,8 @@ export default function App() {
           if (patch.showFind === false) find(''); // putting find away clears it, so nothing stays hidden
           changeSettings(patch);
         }}
+        grainyStamps={settings?.grainyStamps ?? false}
+        onGrainyStamps={(grainyStamps) => changeSettings({ grainyStamps })}
         flipSound={settings?.flipSound ?? true}
         onFlipSound={(flipSound) => changeSettings({ flipSound })}
         glowPalette={settings?.glowPalette ?? 'peach'}

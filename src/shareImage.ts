@@ -2,7 +2,8 @@ import { FRAMES, RULES, STARS } from './components/inkPaths';
 import { cardLook, toPixels } from './components/ink';
 import { loadFruitFont } from './components/FruitMark';
 import { stampFill, stampFruit, type StampLook } from './components/MonthGrid';
-import { MONTH_NAMES, WEEKDAYS, monthWeeks } from './dates';
+import { MONTH_NAMES, WEEKDAYS, monthWeeks, stampTilt } from './dates';
+import { stampGrain } from './stampGrain';
 import { abbreviateUnits, servesLabel, splitAmount, stepText } from './recipeText';
 import { scallopPath } from './scallop';
 import { STAMP_CANCEL, STAMP_H, STAMP_INSET, STAMP_PAPER, STAMP_PEN, STAMP_W } from './components/Stamp';
@@ -362,6 +363,7 @@ function drawStamp(
     c.fillText(stampFruit(recipe, look), STAMP_W / 2, STAMP_H / 2 + 14);
     c.textAlign = 'left';
   }
+  if (look.grainy) c.drawImage(stampGrain(), STAMP_INSET, STAMP_INSET, iw, ih);
   c.strokeStyle = INK;
   c.lineCap = 'round';
   c.lineWidth = 1;
@@ -452,8 +454,7 @@ export async function renderMonthImage(year: number, month: number, recipes: Rec
         const sw = (STAMP_W / STAMP_H) * h;
         const sx = x + (cellW - sw) / 2 + 4 + (list.length > 1 ? (n ? 11 : -9) : 0);
         const sy = top + 16 + (list.length > 1 && n ? 12 : 0);
-        const tilt = (((Number(day.slice(8)) * 37 + n * 11) % 7) - 3) * 0.018;
-        drawStamp(c, r, photos.get(r.id) ?? null, look, sx, sy, h, tilt);
+        drawStamp(c, r, photos.get(r.id) ?? null, look, sx, sy, h, (stampTilt(r.id, day) * Math.PI) / 180);
       });
       c.font = `21px "${hand}"`; // the day number sits on top of any stamp
       c.fillStyle = INK_SOFT;
