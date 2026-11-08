@@ -38,6 +38,11 @@ export function CalendarView({
   const sceneRef = useRef<HTMLDivElement>(null);
   const days = useMemo(() => cookedByDay(recipes), [recipes]);
   const styleLook = cardLook(`calendar-${at.year}-${at.month}`);
+  const thisMonth = now.getFullYear() === at.year && now.getMonth() === at.month;
+  const goToday = () => {
+    setAt({ year: now.getFullYear(), month: now.getMonth() });
+    setSeed(Math.random());
+  };
   const flip = (by: number) => {
     setAt((a) => addMonths(a.year, a.month, by));
     setSeed(Math.random());
@@ -55,9 +60,11 @@ export function CalendarView({
       if (e.key === 'Escape') onClose();
       else if (e.key === 'ArrowLeft') flip(-1);
       else if (e.key === 'ArrowRight') flip(1);
+      else if ((e.key === 't' || e.key === 'T') && !e.metaKey && !e.ctrlKey && !e.altKey) goToday();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose, paused]);
 
   const monthPrefix = `${at.year}-${String(at.month + 1).padStart(2, '0')}`;
@@ -90,6 +97,9 @@ export function CalendarView({
               </header>
               <p className="calendar-count" aria-live="polite">
                 {cookedCount ? `${cookedCount} ${cookedCount === 1 ? 'dish' : 'dishes'} cooked` : 'nothing stamped yet'}
+                {!thisMonth && (
+                  <button type="button" className="today-link" onClick={goToday}>today</button>
+                )}
               </p>
               <InkRule variant={styleLook.rule} />
               <MonthGrid

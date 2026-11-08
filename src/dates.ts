@@ -19,6 +19,36 @@ export function monthWeeks(year: number, month: number): (string | null)[][] {
   return Array.from({ length: cells.length / 7 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
 }
 
+export const WEEKDAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+/** A YYYY-MM-DD as a Date at midday (so a clock change never moves it to another day). */
+export const parseDay = (day: string) => {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y, m - 1, d, 12);
+};
+
+export const addDays = (day: string, by: number) => {
+  const d = parseDay(day);
+  d.setDate(d.getDate() + by);
+  return ymd(d);
+};
+
+export const weekdayName = (day: string) => WEEKDAY_NAMES[parseDay(day).getDay()];
+
+/** "2026-11-07" → "november 7, 2026" */
+export function longDate(day: string) {
+  const d = parseDay(day);
+  return `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+/** Seven days as one line: "november 2 – 8", or "october 30 – november 5" across a month. */
+export function rangeLabel(first: string, last: string) {
+  const a = parseDay(first);
+  const b = parseDay(last);
+  const aText = `${MONTH_NAMES[a.getMonth()]} ${a.getDate()}`;
+  return a.getMonth() === b.getMonth() ? `${aText} – ${b.getDate()}` : `${aText} – ${MONTH_NAMES[b.getMonth()]} ${b.getDate()}`;
+}
+
 /** "2026-11-07" → "nov 7" */
 export function shortDay(day: string) {
   const [, m, d] = day.split('-').map(Number);

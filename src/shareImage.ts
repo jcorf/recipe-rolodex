@@ -2,7 +2,7 @@ import { FRAMES, RULES, STARS } from './components/inkPaths';
 import { cardLook, toPixels } from './components/ink';
 import { loadFruitFont } from './components/FruitMark';
 import { stampFill, stampFruit, type StampLook } from './components/MonthGrid';
-import { MONTH_NAMES, WEEKDAYS, monthWeeks, pickShown, stampTilt } from './dates';
+import { MONTH_NAMES, WEEKDAYS, addDays, hash01, longDate, monthWeeks, pickShown, rangeLabel, stampTilt, weekdayName } from './dates';
 import { stampGrain } from './stampGrain';
 import { abbreviateUnits, servesLabel, splitAmount, stepText } from './recipeText';
 import { scallopPath } from './scallop';
@@ -506,3 +506,206 @@ export async function renderMonthImage(year: number, month: number, recipes: Rec
 }
 
 export const fileSlug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'recipe';
+
+/** Who was cooked on each of these days, with each recipe's photo ready to draw. */
+async function cookedOn(days: string[], recipes: Recipe[]) {
+  const byDay = new Map<string, Recipe[]>();
+  for (const r of recipes) for (const d of r.cooked ?? []) if (days.includes(d)) byDay.set(d, [...(byDay.get(d) ?? []), r]);
+  const photos = new Map<string, HTMLImageElement | null>();
+  await Promise.all([...new Set([...byDay.values()].flat())].map(async (r) => {
+    photos.set(r.id, await recipePhoto(r, 'thumb'));
+  }));
+  return { byDay, photos };
+}
+
+/** The pen border and the sheet it's drawn on, shared by the week and day pictures. */
+async function penSheet(CW: number, CH: number, id: string) {
+  const { sheet, look: ink } = await cottonSheet(CW, CH, id);
+  const c = sheet.getContext('2d')!; // already scaled by newCanvas
+  c.globalCompositeOperation = 'source-over';
+  c.lineCap = 'round';
+  c.lineJoin = 'round';
+  c.save();
+  c.strokeStyle = INK;
+  c.lineWidth = 1.5;
+  c.globalAlpha = 0.9;
+  const moved = new Path2D();
+  moved.addPath(new Path2D(toPixels(FRAMES[ink.frame].main, CW - 10, CH - 10)), new DOMMatrix().translate(5, 5));
+  c.stroke(moved);
+  c.restore();
+  return { sheet, c, ink };
+}
+
+/** Recipes in a steady shuffle that follows `seed`, so the dice (and the page) agree on the order. */
+const shuffled = (list: Recipe[], day: string, seed: number) =>
+  [...list].sort((a, b) => hash01(`${seed}|${a.id}|${day}|order`) - hash01(`${seed}|${b.id}|${day}|order`));
+
+/**
+ * Seven days in a row, starting on `start`, as a picture: a column per day, every dish stamped in a
+ * little overlapping stack (up to five; the rest are counted).
+ */
+export async function renderWeekImage(start: string, recipes: Recipe[], { recipeFont, look, glow, white }: ShareContext, { seed }: MonthLook): Promise<Blob> {
+  const hand = handFamily(recipeFont === 'print' ? 'hand' : recipeFont);
+  await ensureFonts([LABEL_FONT, hand]);
+  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  const { byDay, photos } = await cookedOn(days, recipes);
+
+  const CW = 720;
+  const PAD = 34;
+  const colW = (CW - PAD * 2) / 7;
+  const stampH = 80;
+  const stampW = (STAMP_W / STAMP_H) * stampH;
+  const step = 62;
+  const MAX = 5;
+  const total = days.reduce((n, d) => n + (byDay.get(d)?.length ?? 0), 0);
+  const stacked = Math.max(0, ...days.map((d) => Math.min(MAX, byDay.get(d)?.length ?? 0)));
+  const bodyTop = 214;
+  const bodyH = stacked ? stampH + (stacked - 1) * step + 26 : 96;
+  const CH = bodyTop + bodyH + 46;
+
+  const { sheet, c, ink } = await penSheet(CW, CH, `week-${start}`);
+  c.fillStyle = INK;
+  c.textAlign = 'center';
+  c.font = `48px "${LABEL_FONT}"`;
+  c.fillText(rangeLabel(days[0], days[6]), CW / 2, 84);
+  c.font = `19px "${LABEL_FONT}"`;
+  c.fillStyle = INK_SOFT;
+  c.fillText(total ? `${total} ${total === 1 ? 'dish' : 'dishes'} cooked` : 'nothing stamped this week', CW / 2, 114);
+  c.strokeStyle = INK;
+  c.lineWidth = 1.3;
+  c.globalAlpha = 0.8;
+  stroke(c, RULES[ink.rule], [100, 6], PAD, 124, CW - PAD * 2, 10);
+  c.globalAlpha = 1;
+
+  // faint pencil lines between the days
+  c.save();
+  c.strokeStyle = PENCIL;
+  c.globalAlpha = 0.5;
+  c.setLineDash([3, 5]);
+  c.lineWidth = 1;
+  for (let i = 1; i < 7; i++) {
+    c.beginPath();
+    c.moveTo(PAD + i * colW, 150);
+    c.lineTo(PAD + i * colW, CH - 36);
+    c.stroke();
+  }
+  c.restore();
+
+  days.forEach((day, i) => {
+    const x = PAD + i * colW;
+    c.textAlign = 'center';
+    c.fillStyle = INK_SOFT;
+    c.font = `20px "${LABEL_FONT}"`;
+    c.fillText(weekdayName(day).slice(0, 3), x + colW / 2, 170);
+    c.fillStyle = INK;
+    c.font = `26px "${hand}"`;
+    c.fillText(String(Number(day.slice(8))), x + colW / 2, 198);
+    const list = shuffled(byDay.get(day) ?? [], day, seed);
+    list.slice(0, MAX).forEach((r, n) => {
+      const sx = x + (colW - stampW) / 2 + (hash01(`${seed}|${r.id}|${day}|x`) - 0.5) * 8;
+      drawStamp(c, r, photos.get(r.id) ?? null, look, sx, bodyTop + n * step, stampH, (stampTilt(r.id, day, seed) * Math.PI) / 180);
+    });
+    if (list.length > MAX) {
+      c.fillStyle = INK;
+      c.font = `18px "${LABEL_FONT}"`;
+      c.fillText(`+${list.length - MAX}`, x + colW / 2, bodyTop + (MAX - 1) * step + stampH + 20);
+    }
+  });
+  if (!total) {
+    c.fillStyle = PENCIL;
+    c.font = `26px "${LABEL_FONT}"`;
+    c.fillText('nothing stamped this week', CW / 2, bodyTop + 52);
+  }
+
+  const out = onDesk(sheet, CW, CH, 40, glow, white);
+  signature(out.ctx, out.W, out.H);
+  return toBlob(out.canvas);
+}
+
+/**
+ * One day as a picture: its name written large, then every stamp from that day scattered like they
+ * were laid down by hand: overlapping in loose rows, each leaning its own way, a few held on with
+ * a strip of tape, and the dishes' names written underneath.
+ */
+export async function renderDayImage(day: string, recipes: Recipe[], { recipeFont, look, glow, white }: ShareContext, { seed }: MonthLook): Promise<Blob> {
+  const hand = handFamily(recipeFont === 'print' ? 'hand' : recipeFont);
+  await ensureFonts([LABEL_FONT, hand]);
+  const { byDay, photos } = await cookedOn([day], recipes);
+  const all = shuffled(byDay.get(day) ?? [], day, seed);
+  const MAX = 12;
+  const list = all.slice(0, MAX);
+  const n = list.length;
+
+  const CW = 640;
+  const PAD = 44;
+  const inner = CW - PAD * 2;
+  // how big the stamps are and how many to a row, so a few sit large and many still fill the page
+  const [stampH, perRow] =
+    n <= 1 ? [220, 1] : n === 2 ? [180, 2] : n === 3 ? [150, 3] : n === 4 ? [128, 4] : n <= 6 ? [130, 3] : n <= 8 ? [120, 4] : n <= 10 ? [100, 5] : [100, 4];
+  const stampW = (STAMP_W / STAMP_H) * stampH;
+  const rows = n ? Math.ceil(n / perRow) : 0;
+  const rowH = stampH * 0.86;
+  const areaH = n ? stampH + (rows - 1) * rowH + 30 : 120;
+
+  const { canvas: scratch, ctx: m } = newCanvas(10, 10);
+  void scratch;
+  m.font = `26px "${hand}"`;
+  const names = all.length ? wrap(m, [...new Set(list.map((r) => r.title.toLowerCase()))].join('  ·  ') + (all.length > MAX ? `  ·  and ${all.length - MAX} more` : ''), inner) : [];
+
+  const headH = 194;
+  const namesH = names.length ? names.length * 32 + 22 : 0;
+  const CH = headH + areaH + namesH + 54;
+  const { sheet, c, ink } = await penSheet(CW, CH, `day-${day}`);
+
+  c.textAlign = 'center';
+  c.fillStyle = INK;
+  c.font = `58px "${LABEL_FONT}"`;
+  c.fillText(weekdayName(day), CW / 2, 84);
+  c.fillStyle = INK_SOFT;
+  c.font = `28px "${hand}"`;
+  c.fillText(longDate(day), CW / 2, 138); // low enough that the descenders of the weekday clear it
+  c.font = `19px "${LABEL_FONT}"`;
+  c.fillText(all.length ? `${all.length} ${all.length === 1 ? 'dish' : 'dishes'} cooked` : 'nothing stamped on this day', CW / 2, 166);
+  c.strokeStyle = INK;
+  c.lineWidth = 1.3;
+  c.globalAlpha = 0.8;
+  stroke(c, RULES[ink.rule], [100, 6], PAD, 176, inner, 10);
+  c.globalAlpha = 1;
+
+  // lay the stamps in loose, staggered rows
+  const top = headH + 12;
+  const gapX = perRow > 1 ? Math.min(stampW * 1.38, (inner - stampW - 24) / (perRow - 1)) : 0;
+  list.forEach((r, i) => {
+    const row = Math.floor(i / perRow);
+    const inRow = Math.min(perRow, n - row * perRow);
+    const rowW = stampW + (inRow - 1) * gapX;
+    const stagger = row % 2 ? gapX * 0.22 : -gapX * 0.1;
+    const jx = (hash01(`${seed}|${r.id}|jx`) - 0.5) * 14;
+    const jy = (hash01(`${seed}|${r.id}|jy`) - 0.5) * 10;
+    const x = PAD + (inner - rowW) / 2 + (i % perRow) * gapX + stagger + jx;
+    const y = top + row * rowH + jy;
+    const tilt = (stampTilt(r.id, day, seed) * 1.5 * Math.PI) / 180;
+    drawStamp(c, r, photos.get(r.id) ?? null, look, x, y, stampH, tilt);
+    if (hash01(`${seed}|${r.id}|tape`) > 0.5) { // a strip of tape across the top edge
+      c.save();
+      c.translate(x + stampW / 2 + (hash01(`${seed}|${r.id}|tx`) - 0.5) * stampW * 0.5, y + 2);
+      c.rotate(tilt + (hash01(`${seed}|${r.id}|tr`) - 0.5) * 0.6);
+      c.fillStyle = 'rgba(220,193,150,.72)';
+      c.fillRect(-19, -7, 38, 14);
+      c.restore();
+    }
+  });
+  if (!n) {
+    c.fillStyle = PENCIL;
+    c.font = `26px "${LABEL_FONT}"`;
+    c.fillText('nothing stamped on this day', CW / 2, headH + 66);
+  }
+
+  c.fillStyle = INK;
+  c.font = `26px "${hand}"`;
+  names.forEach((line, i) => c.fillText(line, CW / 2, headH + areaH + 22 + i * 32));
+
+  const out = onDesk(sheet, CW, CH, 40, glow, white);
+  signature(out.ctx, out.W, out.H);
+  return toBlob(out.canvas);
+}
