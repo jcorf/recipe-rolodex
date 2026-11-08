@@ -1417,7 +1417,15 @@ button:disabled { cursor: default; }
 /* tall settings card on a short window: scroll inside it rather than slide under the title */
 .jar-pop .sort-option { padding: 0; line-height: 1.5; }
 .jar-pop .setting-group { margin-top: 0.5rem; padding-top: 0.35rem; }
-.pop-scroll { max-height: calc(100vh - 12rem); overflow-y: auto; scrollbar-width: none; }
+/* The scroll box clips whatever sticks out of it (the pen circles, the hover nudge), so it reaches
+   a little past the text on every side; the negative margins keep the layout as it was. */
+.pop-scroll {
+  max-height: calc(100vh - 12rem);
+  margin: -0.5rem -1rem;
+  padding: 0.5rem 1rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
 .setting-group { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed rgb(61 60 64 / 0.25); }
 .sort-label.writing-print { font-family: var(--sans); font-size: 0.95rem; }
 .sort-label.writing-caveat { font-family: 'Caveat', cursive; font-size: 1.3rem; }

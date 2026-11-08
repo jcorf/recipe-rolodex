@@ -31,16 +31,16 @@ function HelpNote() {
       <ul>
         <li><b>flip</b> with ↑ ↓ ← →, the scroll wheel, or by clicking a tab. it goes round and round.</li>
         <li><b>open</b> the front card to read it, edit it, or give it stars. half stars count.</li>
-        <li><b>new card</b>: pull one from the stack, or click a blank one. paste a link on the first line and it fills itself in.</li>
-        <li><b>find</b> with <kbd>/</kbd>. it looks through names, meals, cuisines and ingredients.</li>
+        <li><b>new card</b>: pull one from the stack. paste a link on the first line and it fills itself in.</li>
+        <li><b>find</b>: looks through names, meals, cuisines and ingredients.</li>
         <li><b>surprise me</b> picks something you haven’t cooked yet.</li>
         <li>click a <b>fruit</b> to swap it for another.</li>
         <li><b>the box</b>: save a copy of every recipe (and any open card) as .json to add back later, or as .md, .txt, .docx or .pdf to read, edit or print.</li>
       </ul>
       <span className="pop-title">why I made it</span>
       <p>
-        a place to keep every recipe I love, close to how a real recipe box feels, and a nudge to
-        actually cook the ones I’ve saved.
+        i wanted to recreate a cozy, whimiscal way to share and keep the recipes that i've gathered, and to provide a
+        fun way to try one's i've been meaning to - xo, julie
       </p>
     </div>
   );
