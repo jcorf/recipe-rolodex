@@ -34,7 +34,20 @@ export function saveRecipes(recipes) {
 // ───────── settings ─────────
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
+export const SORT_OPTIONS = ['category', 'rating', 'time', 'cuisine', 'alpha'];
+
 export const DEFAULT_SETTINGS = {
+  /** How the rolodex is divided. */
+  sortBy: 'category',
+  /** KR Fruitsy letter for the fruit beside "my recipes" (each letter is a fruit). */
+  titleFruit: 'h',
+  /** How ingredients, directions and notes are written: 'hand' (Zeyada) or 'print' (Mukta Malar). */
+  recipeFont: 'hand',
+  /** Fruit chosen for a divider, by divider key (e.g. "lunch", "cuisine-korean"); others use defaults. */
+  dividerFruits: {},
+  /** Desk objects you can put away: the blank-card stack and the find slip. */
+  showNewCard: true,
+  showFind: true,
   /** Pastel stock for each category divider card. */
   dividerColors: {
     breakfast: '#f6e7b0',
@@ -50,7 +63,12 @@ export const DEFAULT_SETTINGS = {
 export async function loadSettings() {
   try {
     const saved = JSON.parse(await readFile(SETTINGS_FILE, 'utf8'));
-    return { ...DEFAULT_SETTINGS, ...saved, dividerColors: { ...DEFAULT_SETTINGS.dividerColors, ...saved.dividerColors } };
+    return {
+      ...DEFAULT_SETTINGS,
+      ...saved,
+      dividerColors: { ...DEFAULT_SETTINGS.dividerColors, ...saved.dividerColors },
+      dividerFruits: { ...saved.dividerFruits },
+    };
   } catch (err) {
     if (err.code !== 'ENOENT') throw err;
     return structuredClone(DEFAULT_SETTINGS);

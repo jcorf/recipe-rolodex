@@ -1,33 +1,47 @@
-import { useEffect, useId, useRef } from 'react';
+import { useId } from 'react';
 import { STARS } from './inkPaths';
 
-/** Hand-drawn star: ink-filled when on, a thin pen outline when off. `variant` picks one of the drawn shapes. */
-export function Star({ filled, variant = 0, className }: { filled: boolean; variant?: number; className?: string }) {
+/**
+ * Hand-drawn star. `fill` is 1 (inked), 0.5 (left half inked) or 0 (a thin pen outline).
+ * `variant` picks one of the drawn shapes; each also leans and sizes a touch differently.
+ */
+export function Star({ fill, variant = 0, className }: { fill: number; variant?: number; className?: string }) {
+  const id = useId();
+  const d = STARS[variant % STARS.length];
   return (
     <svg
       viewBox="0 0 100 100"
       className={className}
       aria-hidden="true"
-      // a hand never draws two stars alike: each leans, sits and sizes a touch differently
       style={{
         rotate: `${((variant * 37) % 23) - 11}deg`,
         scale: `${0.88 + ((variant * 13) % 17) / 100}`,
         translate: `0 ${((variant * 7) % 5) - 2}%`,
       }}
     >
+      {fill === 0.5 && (
+        <clipPath id={`${id}h`}>
+          <rect x="0" y="0" width="50" height="100" />
+        </clipPath>
+      )}
+      {fill > 0 && (
+        <path d={d} fill="currentColor" fillOpacity={0.92} clipPath={fill === 0.5 ? `url(#${id}h)` : undefined} />
+      )}
       <path
-        d={STARS[variant % STARS.length]}
-        fill={filled ? 'currentColor' : 'none'}
-        fillOpacity={filled ? 0.92 : 0}
+        d={d}
+        fill="none"
         stroke="currentColor"
         strokeWidth="4.5"
         strokeLinejoin="round"
         strokeLinecap="round"
-        opacity={filled ? 1 : 0.45}
+        opacity={fill > 0 ? 1 : 0.45}
       />
     </svg>
   );
 }
+
+/** How much of star `n` (1–5) a rating fills: 1, 0.5 or 0. */
+export const starFill = (rating: number, n: number) => (rating >= n ? 1 : rating >= n - 0.5 ? 0.5 : 0);
 
 /** Embroidered patch heart, used as the envelope's seal. */
 export function PatchHeart({ className }: { className?: string }) {
@@ -68,38 +82,5 @@ export function GinghamBow({ className }: { className?: string }) {
         <rect x="52" y="42" width="16" height="15" rx="5" />
       </g>
     </svg>
-  );
-}
-
-/** Googly eyes whose pupils follow the pointer. */
-export function GooglyEyes({ className }: { className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let frame = 0;
-    const onMove = (e: PointerEvent) => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        ref.current?.querySelectorAll<HTMLElement>('.pupil').forEach((pupil) => {
-          const eye = pupil.parentElement!.getBoundingClientRect();
-          const dx = e.clientX - (eye.left + eye.width / 2);
-          const dy = e.clientY - (eye.top + eye.height / 2);
-          const angle = Math.atan2(dy, dx);
-          const reach = Math.min(Math.hypot(dx, dy) / 30, 1) * eye.width * 0.2;
-          pupil.style.transform = `translate(${Math.cos(angle) * reach}px, ${Math.sin(angle) * reach}px)`;
-        });
-      });
-    };
-    window.addEventListener('pointermove', onMove);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      cancelAnimationFrame(frame);
-    };
-  }, []);
-  return (
-    <div ref={ref} className={`googly ${className ?? ''}`} aria-hidden="true">
-      <span className="eye"><span className="pupil" /></span>
-      <span className="eye"><span className="pupil" /></span>
-    </div>
   );
 }

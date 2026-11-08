@@ -1,14 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, type RefObject } from 'react';
 
 /**
  * Drives the page's soft background light: --mx/--my (0–1 across the viewport) ease toward the
  * pointer, and --glow brightens while the pointer is on the page. When the pointer leaves the
  * window the light drifts back to rest and dims.
+ *
+ * The properties are written on the light layer itself, never on <html>: custom properties
+ * inherit, so setting them on the root made the browser restyle the whole page every frame.
  */
-export function useDriftingLight() {
+export function useDriftingLight(ref: RefObject<HTMLElement>) {
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const root = document.documentElement;
+    const root = ref.current;
+    if (!root) return;
     const REST = { x: 0.5, y: 0.42, glow: 0.55 };
     let target = { ...REST };
     let x = REST.x, y = REST.y, glow = REST.glow, frame = 0;
@@ -26,6 +30,7 @@ export function useDriftingLight() {
     const wake = () => { if (!frame) frame = requestAnimationFrame(tick); };
 
     const onMove = (e: PointerEvent) => {
+      if (document.body.classList.contains('card-open')) return; // a card is open: hold still
       target = { x: e.clientX / innerWidth, y: e.clientY / innerHeight, glow: 1 };
       wake();
     };
@@ -41,5 +46,5 @@ export function useDriftingLight() {
       document.documentElement.removeEventListener('pointerout', onLeave);
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [ref]);
 }

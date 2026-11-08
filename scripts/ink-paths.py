@@ -113,15 +113,47 @@ def tab(seed):
     pts += [(r + j(1.8), t + 14 + k * (104 - t - 14) / 3) for k in range(0, 4)]       # right side, down
     return smooth(pts)
 
+def holder(seed):
+    """cardboard index-card holder front, viewBox 0 0 1000 240, with a half-moon finger notch.
+    Returns (mask path for public/holder-mask.svg, pen outline path)."""
+    rng = random.Random(seed)
+    j = lambda a: rng.uniform(-a, a)
+    nl, nr, depth = 410, 590, 64                          # notch from x=410 to 590, 64 deep
+    def edge(x0, x1, y, n, amp):
+        return [(x0 + (x1 - x0) * k / n, y + j(amp)) for k in range(1, n + 1)]
+    top_l = [(0, 4 + j(2))] + edge(0, nl, 4, 10, 1.8)
+    top_r = edge(nr, 1000, 4, 10, 1.8)
+    right = [(1000 - abs(j(2.5)), 4 + k * 236 / 6) for k in range(1, 7)]
+    bottom = [(1000 - k * 1000 / 12, 240 - abs(j(2.5))) for k in range(1, 13)]
+    left = [(abs(j(2.5)), 240 - k * 236 / 6) for k in range(1, 6)]
+    mask = smooth(top_l) + f" A{(nr - nl) / 2} {depth} 0 0 0 {nr} {f(top_l[-1][1])}" + " " + \
+        smooth(top_r + right + bottom + left, start=False) + " Z"
+    # pen outline ~10 units inside, wobbling, following the notch
+    o = []
+    o += [(14 + k * (nl - 24) / 6, 14 + j(1.3)) for k in range(0, 7)]
+    line1 = smooth(o)
+    notch = f" Q{nl - 6} 14 {nl - 4} 20 Q{nl + 6} {14 + depth + 6} 500 {14 + depth + 8} Q{nr - 6} {14 + depth + 6} {nr + 4} 20 Q{nr + 6} 14 {nr + 10} 14"
+    rest = [(nr + 10 + k * (986 - nr - 10) / 6, 14 + j(1.3)) for k in range(1, 7)]
+    rest += [(986 + j(1.5), 14 + k * 212 / 5) for k in range(1, 6)]
+    rest += [(986 - k * 972 / 9, 226 + j(1.5)) for k in range(1, 10)]
+    rest += [(14 + j(1.5), 226 - k * 216 / 5) for k in range(1, 6)]
+    outline = line1 + notch + smooth(rest, start=False)
+    return mask, outline
+
 out = {
     "FRAMES": [frame(s) for s in range(101, 109)],
     "RULES": [rule(s) for s in range(201, 209)],
     "STARS": [star(s) for s in range(301, 311)],
     "TABS": [tab(s) for s in range(501, 507)],
     "CIRCLES": [circle(s) for s in range(401, 405)],
+    "HOLDER": holder(601)[1],
 }
 ts = "// Generated hand-drawn pen variants. Each card picks its own by a hash of its id,\n// so the rolodex never shows two identical borders side by side.\n\n"
 for k, v in out.items():
     ts += f"export const {k} = {json.dumps(v, indent=2)};\n\n"
 open(sys.argv[1], "w").write(ts)
+# the holder's cut-out shape is a CSS mask, so it ships as a file
+import os
+mask_path = os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), "..", "..", "public", "holder-mask.svg")
+open(mask_path, "w").write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 240" preserveAspectRatio="none"><path d="{holder(601)[0]}" fill="#000"/></svg>')
 print({k: len(v) for k, v in out.items()})

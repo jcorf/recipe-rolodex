@@ -1,10 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
-import type { Draft, Recipe, Settings } from './types';
+import { CATEGORIES, type Draft, type Recipe, type Settings } from './types';
 import { Rolodex, buildItems } from './components/Rolodex';
+import { CardStack, FindSlip } from './components/DeskObjects';
+import { exportAll } from './exportRecipes';
 import { FruitMark } from './components/FruitMark';
+import { JamJar } from './components/JamJar';
 import { useDriftingLight } from './useDriftingLight';
 import { Letter } from './components/Letter';
+
+const categoryLabel = (key: string) => CATEGORIES.find((c) => c.key === key)?.label ?? '';
 
 type Open =
   | { kind: 'saved'; id: string }
@@ -19,11 +24,10 @@ export default function App() {
   const [index, setIndex] = useState(0);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Open>(null);
-  const [link, setLink] = useState('');
-  const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState('');
+  const findRef = useRef<HTMLInputElement>(null);
 
-  useDriftingLight();
+  const ambientRef = useRef<HTMLDivElement>(null);
+  useDriftingLight(ambientRef);
 
   useEffect(() => {
     api.settings().then(setSettings).catch(() => { /* defaults below keep the dividers coloured */ });
@@ -37,98 +41,96 @@ export default function App() {
     const q = query.trim().toLowerCase();
     if (!q) return recipes;
     return recipes.filter((r) =>
-      [r.title, r.cuisine, r.category, r.review, ...r.ingredients].some((field) => field.toLowerCase().includes(q)),
+      [r.title, r.cuisine, r.category, categoryLabel(r.category), r.review, ...r.ingredients].some((field) => field.toLowerCase().includes(q)),
     );
   }, [recipes, query]);
 
-  const items = useMemo(() => buildItems(shown), [shown]);
+  const sortBy = settings?.sortBy ?? 'category';
+  const items = useMemo(() => buildItems(shown, sortBy), [shown, sortBy]);
+
+  // Settings change on the page at once and are saved in the background.
+  const changeSettings = (patch: Partial<Settings>) => {
+    setSettings((s) => (s ? { ...s, ...patch } : s));
+    if (patch.sortBy) setIndex(0);
+    api.saveSettings(patch).then(setSettings).catch(() => { /* keep the local choice; it retries next change */ });
+  };
 
   useEffect(() => {
     setIndex((i) => Math.min(i, Math.max(0, items.length - 1)));
   }, [items.length]);
 
   const focusById = (id: string, list: Recipe[]) => {
-    const i = buildItems(list).findIndex((item) => item.kind === 'recipe' && item.recipe.id === id);
+    const i = buildItems(list, sortBy).findIndex((item) => item.kind === 'recipe' && item.recipe.id === id);
     if (i !== -1) {
       setQuery('');
       setIndex(i);
     }
   };
 
-  async function importLink(e: React.FormEvent) {
-    e.preventDefault();
-    if (!link.trim()) return;
-    setImporting(true);
-    setImportError('');
-    try {
-      const { found, draft } = await api.importLink(link.trim());
-      setOpen({
-        kind: 'draft',
-        draft,
-        notice: found
-          ? 'Copied from the page. Give it a look, then file it.'
-          : 'That page didn’t share its recipe details, so I saved the name, photo and link. Fill in the rest by hand.',
-      });
-      setLink('');
-    } catch (err) {
-      setImportError((err as Error).message);
-    } finally {
-      setImporting(false);
-    }
-  }
+  /** Pasting a link on a new card's first line fills the card from the page. */
+  const importLink = async (url: string) => {
+    const { found, draft } = await api.importLink(url);
+    return {
+      draft,
+      notice: found
+        ? 'Copied from the page. Give it a look, then file it.'
+        : 'That page didn’t share its recipe details, so I kept the name, photo and link. Fill in the rest by hand.',
+    };
+  };
+
+  const find = (q: string) => {
+    setQuery(q);
+    setIndex(0);
+  };
+
+  // "/" jumps to the find slip (unless you're already writing somewhere, or a card is open)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.key !== '/' || open || t.closest('input, textarea, select, [contenteditable]')) return;
+      e.preventDefault();
+      findRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
 
   const close = useCallback(() => setOpen(null), []);
 
   const openRecipe = open?.kind === 'saved' ? recipes.find((r) => r.id === open.id) : undefined;
 
   return (
-    <div className="desk">
-      <div className="ambient" aria-hidden="true" />
+    <div className="desk" data-recipe-font={settings?.recipeFont ?? 'hand'}>
+      <div ref={ambientRef} className="ambient" aria-hidden="true" />
       <header className="desk-header">
         <h1 className="wordmark">
-          <FruitMark />
+          <FruitMark glyph={settings?.titleFruit ?? 'h'} onChange={(titleFruit) => changeSettings({ titleFruit })} />
           <span>my recipes</span>
         </h1>
-
-        <form className="link-strip" onSubmit={importLink}>
-          <label htmlFor="link" className="visually-hidden">Recipe link</label>
-          <input
-            id="link"
-            className="strip-input"
-            type="url"
-            inputMode="url"
-            placeholder="paste a recipe link…"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            aria-describedby={importError ? 'import-error' : undefined}
-          />
-          <button className="tag-button is-primary" disabled={importing || !link.trim()}>
-            {importing ? 'fetching…' : 'make a card'}
-          </button>
-          <button type="button" className="tag-button" onClick={() => setOpen({ kind: 'draft', draft: {} })}>
-            write one by hand
-          </button>
-          {importError && <p id="import-error" className="strip-error" role="alert">{importError}</p>}
-        </form>
       </header>
 
       <main className="desk-surface">
         {loadError ? (
           <p className="load-error" role="alert">{loadError}</p>
         ) : (
-          <>
-            <label className="find-field">
-              <span>find</span>
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => { setQuery(e.target.value); setIndex(0); }}
-                placeholder="a name, category or ingredient"
-              />
-            </label>
+          <div className="desk-row">
+            <div className="desk-side is-left">
+              {(settings?.showNewCard ?? true) && <CardStack onAdd={() => setOpen({ kind: 'draft', draft: {} })} />}
+            </div>
 
             <Rolodex
               dividerColors={settings?.dividerColors ?? {}}
+              dividerFruits={settings?.dividerFruits ?? {}}
+              onDividerFruit={(group, glyph) =>
+                changeSettings({ dividerFruits: { ...settings?.dividerFruits, [group]: glyph } })
+              }
+              keyboard={!open}
+              onRate={(recipe, rating) => {
+                setRecipes((list) => list.map((r) => (r.id === recipe.id ? { ...r, rating } : r)));
+                api.update(recipe.id, { rating }).catch(() => {
+                  setRecipes((list) => list.map((r) => (r.id === recipe.id ? recipe : r))); // put it back if the save failed
+                });
+              }}
               items={items}
               recipeCount={shown.length}
               index={index}
@@ -139,12 +141,29 @@ export default function App() {
                   ? 'dusting off the cards…'
                   : query
                     ? `no card mentions “${query}”`
-                    : 'no cards yet. paste a recipe link above, or write one by hand.'
+                    : 'no cards yet. pull a blank card from the stack to start.'
               }
             />
-          </>
+
+            <div className="desk-side is-right">
+              {(settings?.showFind ?? true) && <FindSlip ref={findRef} value={query} onChange={find} />}
+            </div>
+          </div>
         )}
       </main>
+
+      <JamJar
+        sortBy={sortBy}
+        onSortBy={(next) => changeSettings({ sortBy: next })}
+        recipeFont={settings?.recipeFont ?? 'hand'}
+        onRecipeFont={(recipeFont) => changeSettings({ recipeFont })}
+        desk={{ showNewCard: settings?.showNewCard ?? true, showFind: settings?.showFind ?? true }}
+        onDesk={(patch) => {
+          if (patch.showFind === false) find(''); // putting find away clears it, so nothing stays hidden
+          changeSettings(patch);
+        }}
+        onExportAll={() => exportAll(recipes)}
+      />
 
       {open?.kind === 'saved' && openRecipe && (
         <Letter
@@ -170,6 +189,7 @@ export default function App() {
           recipe={open.draft}
           isNew
           notice={open.notice}
+          onImport={importLink}
           onClose={close}
           onSave={async (patch) => {
             const saved = await api.create({ ...open.draft, ...patch });

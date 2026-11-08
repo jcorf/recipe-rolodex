@@ -11,8 +11,8 @@
     "ink": "python3 scripts/ink-paths.py src/components/inkPaths.ts"
   },
   "dependencies": {
-    "@fontsource/figtree": "^5.3.0",
     "@fontsource/la-belle-aurore": "^5.3.0",
+    "@fontsource/mukta-malar": "^5.3.0",
     "@fontsource/zeyada": "^5.3.0",
     "express": "^4.21.2",
     "react": "^18.3.1",

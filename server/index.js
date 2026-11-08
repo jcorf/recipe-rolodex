@@ -2,7 +2,7 @@ import express from 'express';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { DEFAULT_SETTINGS, loadRecipes, loadSettings, saveRecipes, saveSettings } from './store.js';
+import { DEFAULT_SETTINGS, SORT_OPTIONS, loadRecipes, loadSettings, saveRecipes, saveSettings } from './store.js';
 import { importRecipe } from './importer.js';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -27,7 +27,7 @@ function clean(input) {
     } else if (key === 'category') {
       out[key] = CATEGORIES.includes(value) ? value : '';
     } else if (key === 'rating') {
-      out[key] = Math.max(0, Math.min(5, Math.round(Number(value) || 0)));
+      out[key] = Math.max(0, Math.min(5, Math.round((Number(value) || 0) * 2) / 2)); // half stars
     } else {
       out[key] = value == null ? '' : String(value).trim();
     }
@@ -88,7 +88,40 @@ app.put('/api/settings', async (req, res) => {
     }
     colors[group] = String(value).toLowerCase();
   }
-  const next = { ...current, dividerColors: colors };
+  let sortBy = current.sortBy;
+  if (req.body?.sortBy !== undefined) {
+    if (!SORT_OPTIONS.includes(req.body.sortBy)) {
+      return res.status(400).json({ error: `Can't sort by “${req.body.sortBy}”.` });
+    }
+    sortBy = req.body.sortBy;
+  }
+  let titleFruit = current.titleFruit;
+  if (req.body?.titleFruit !== undefined) {
+    if (!/^[a-z0-9]$/.test(String(req.body.titleFruit))) {
+      return res.status(400).json({ error: 'Pick a fruit from the list.' });
+    }
+    titleFruit = req.body.titleFruit;
+  }
+  let recipeFont = current.recipeFont;
+  if (req.body?.recipeFont !== undefined) {
+    if (!['hand', 'print'].includes(req.body.recipeFont)) return res.status(400).json({ error: 'Pick handwritten or printed.' });
+    recipeFont = req.body.recipeFont;
+  }
+  // the page always sends the whole set of divider fruits, so it replaces the saved one
+  const dividerFruits = req.body?.dividerFruits !== undefined ? {} : { ...current.dividerFruits };
+  for (const [group, glyph] of Object.entries(req.body?.dividerFruits ?? current.dividerFruits ?? {})) {
+    if (String(group).length > 60 || !/^[a-z0-9]$/.test(String(glyph))) {
+      return res.status(400).json({ error: 'Pick a fruit from the list.' });
+    }
+    dividerFruits[group] = glyph;
+  }
+  const flags = {};
+  for (const key of ['showNewCard', 'showFind']) {
+    if (req.body?.[key] === undefined) continue;
+    if (typeof req.body[key] !== 'boolean') return res.status(400).json({ error: `${key} must be true or false.` });
+    flags[key] = req.body[key];
+  }
+  const next = { ...current, sortBy, titleFruit, recipeFont, dividerFruits, ...flags, dividerColors: colors };
   await saveSettings(next);
   res.json(next);
 });

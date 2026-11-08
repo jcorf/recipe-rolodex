@@ -1,148 +1,43 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { CATEGORIES, type Recipe } from '../types';
-import { Star } from './Stickers';
-import { CIRCLES, FRAMES, RULES, STARS, TABS } from './inkPaths';
-import { DIVIDER_FRUIT, Fruit } from './FruitMark';
+import { useEffect, useRef, type CSSProperties } from 'react';
+import { CATEGORIES, type Recipe, type SortBy } from '../types';
+import { groupRecipes } from '../sorting';
+import { Star, starFill } from './Stickers';
+import { StarRating } from './StarRating';
+import { cardLook, CircledCount, InkFrame, InkRule, TabEdge } from './ink';
+import { ratingLabel, servesLabel, splitAmount } from '../recipeText';
+import { dividerFruit, Fruit, FruitPicker } from './FruitMark';
 
 const BEHIND = 6; // cards visible behind the front one
 
-type GroupKey = Recipe['category'] | 'unsorted';
-
 export type RolodexItem =
-  | { kind: 'divider'; group: GroupKey; label: string; count: number }
+  | { kind: 'divider'; group: string; label: string; count: number; index: number; total: number; stars?: number; plain?: boolean }
   | { kind: 'recipe'; recipe: Recipe; ordinal: number };
 
-const ORDER: GroupKey[] = [...CATEGORIES.map((c) => c.key), 'unsorted'];
-const LABELS: Record<string, string> = Object.fromEntries([
-  ...CATEGORIES.map((c) => [c.key, c.label]),
-  ['unsorted', 'unsorted'],
-]);
-
-const groupOf = (r: Recipe): GroupKey => r.category || 'unsorted';
-
-export const byTitle = (a: Recipe, b: Recipe) =>
-  a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
-
-/** breakfast → small plates → drinks → lunch → dinner → dessert, A–Z inside each, one divider per group. */
-export function buildItems(recipes: Recipe[]): RolodexItem[] {
+/** The cards in rolodex order: one divider per group (meal, stars, time, cuisine or letter), then its recipes. */
+export function buildItems(recipes: Recipe[], sortBy: SortBy): RolodexItem[] {
+  const groups = groupRecipes(recipes, sortBy);
   const items: RolodexItem[] = [];
   let ordinal = 0;
-  for (const group of ORDER) {
-    const members = recipes.filter((r) => groupOf(r) === group).sort(byTitle);
-    if (!members.length) continue;
-    items.push({ kind: 'divider', group, label: LABELS[group], count: members.length });
-    for (const recipe of members) items.push({ kind: 'recipe', recipe, ordinal: ++ordinal });
-  }
+  groups.forEach((g, index) => {
+    items.push({ kind: 'divider', group: g.key, label: g.label, count: g.recipes.length, index, total: groups.length, stars: g.stars, plain: g.plain });
+    for (const recipe of g.recipes) items.push({ kind: 'recipe', recipe, ordinal: ++ordinal });
+  });
   return items;
 }
 
-/** Category tabs step left → right in menu order; plain tabs scatter so the ones behind stay reachable. */
-function dividerTabX(group: GroupKey) {
-  return 3 + (ORDER.indexOf(group) / (ORDER.length - 1)) * 68;
+/** Divider tabs step left → right in order; plain tabs scatter so the ones behind stay reachable. */
+function dividerTabX(index: number, total: number) {
+  return 3 + (total > 1 ? index / (total - 1) : 0) * 68;
 }
 function plainTabX(ordinal: number) {
   return 10 + ((ordinal * 23) % 76);
 }
 
-/** FNV-1a: a stable number per card id, so a card always keeps the same hand-drawn look. */
-function hash(text: string) {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
-const GRAINS = 6; // public/cotton-0…5.jpg, grain size from fine (0) to 2× coarser (5); made by `npm run textures`
-/** How strongly the cotton grain shows, per card: from faint to full. */
-const GRAIN_OPACITY: [number, number] = [0.45, 1];
-
-/** Each card's own border, header line, cotton grain (offset and rotated) and star shapes. */
-function cardLook(id: string) {
-  const h = hash(id);
-  return {
-    frame: h % FRAMES.length,
-    rule: (h >>> 4) % RULES.length,
-    star: (h >>> 8) % STARS.length,
-    tab: (h >>> 14) % TABS.length,
-    circle: (h >>> 12) % CIRCLES.length,
-    style: {
-      '--grain': `url('/cotton-${(h >>> 16) % GRAINS}.jpg')`,
-      '--grain-x': `${(h >>> 3) % 256}px`,
-      '--grain-y': `${(h >>> 11) % 256}px`,
-      '--grain-rot': `${(h >>> 19) % 360}deg`,
-      '--grain-opacity': (GRAIN_OPACITY[0] + (((h >>> 23) % 101) / 100) * (GRAIN_OPACITY[1] - GRAIN_OPACITY[0])).toFixed(2),
-    } as CSSProperties,
-  };
-}
-
-/** Pen border: wobbling sides, corners that overshoot, a lighter second pass over part of it. */
-function InkFrame({ variant }: { variant: number }) {
-  const ref = useRef<SVGSVGElement>(null);
-  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
-
-  // Draw in the card's real pixel size so a tall (expanded) card keeps its border
-  // the same distance from the paper edge instead of stretching it inward.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => {
-      const { width: w, height: h } = entry.contentRect;
-      setSize((prev) => (prev && Math.abs(prev.w - w) < 1 && Math.abs(prev.h - h) < 1 ? prev : { w, h }));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const { main, echo } = FRAMES[variant];
-  return (
-    <svg ref={ref} className="ink-frame" viewBox={size ? `0 0 ${size.w} ${size.h}` : '0 0 100 100'} aria-hidden="true">
-      {size && <path d={toPixels(main, size.w, size.h)} />}
-      {size && echo && <path className="ink-frame-echo" d={toPixels(echo, size.w, size.h)} />}
-    </svg>
-  );
-}
-
-/** Frame paths are authored at the base card size (100 units ≈ that card); vertical distances stay
- *  fixed from the nearest top/bottom edge so only the long sides stretch as a card grows. */
-function toPixels(d: string, w: number, h: number) {
-  const base = h > 0 ? Math.min(h, BASE_CARD_H) : BASE_CARD_H;
-  let isX = true;
-  return d.replace(/-?\d*\.?\d+/g, (n) => {
-    const v = parseFloat(n);
-    const out = isX ? (v / 100) * w : v < 50 ? (v / 100) * base : h - ((100 - v) / 100) * base;
-    isX = !isX;
-    return out.toFixed(1);
-  });
-}
-const BASE_CARD_H = 380; // px: roughly the card height the frames were drawn for
-
-/** Pen outline around a card's tab: up one side, a wobbly top, down the other; open where it meets the card. */
-function TabEdge({ variant }: { variant: number }) {
-  return (
-    <svg className="tab-edge" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <path vectorEffect="non-scaling-stroke" d={TABS[variant]} />
-    </svg>
-  );
-}
-
-/** Wobbly pen line under a card's header. */
-function InkRule({ variant }: { variant: number }) {
-  return (
-    <svg className="ink-rule" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">
-      <path vectorEffect="non-scaling-stroke" d={RULES[variant]} />
-    </svg>
-  );
-}
-
-/** The divider's recipe count, circled by hand. */
-function CircledCount({ count, variant }: { count: number; variant: number }) {
-  return (
-    <span className="circled-count" aria-label={`${count} recipe${count === 1 ? '' : 's'}`}>
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <path vectorEffect="non-scaling-stroke" d={CIRCLES[variant]} />
-      </svg>
-      <span aria-hidden="true">{count}</span>
-    </span>
-  );
+/** Meal dividers use their own pastel; any other sort cycles through the same pastels. */
+function dividerColor(item: Extract<RolodexItem, { kind: 'divider' }>, colors: Record<string, string>) {
+  if (colors[item.group]) return colors[item.group];
+  const palette = CATEGORIES.map((c) => colors[c.key]).filter(Boolean);
+  return palette.length ? palette[item.index % palette.length] : undefined;
 }
 
 interface Props {
@@ -153,9 +48,14 @@ interface Props {
   onIndex: (i: number) => void;
   onOpen: (recipe: Recipe) => void;
   emptyMessage: string;
+  /** When true, the arrow keys flip the rolodex from anywhere on the desk (no click needed first). */
+  keyboard: boolean;
+  dividerFruits: Record<string, string>;
+  onDividerFruit: (group: string, glyph: string) => void;
+  onRate: (recipe: Recipe, rating: number) => void;
 }
 
-export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onOpen, emptyMessage }: Props) {
+export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onOpen, emptyMessage, keyboard, dividerFruits, onDividerFruit, onRate }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const count = items.length;
   const go = (delta: number) => count && onIndex(Math.max(0, Math.min(count - 1, index + delta)));
@@ -180,13 +80,29 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
   const current = items[index];
   const activate = (item: RolodexItem) => (item.kind === 'recipe' ? onOpen(item.recipe) : go(1));
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
+  const onKeyDown = (e: KeyboardEvent | React.KeyboardEvent) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); go(1); }
     else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
     else if (e.key === 'Home') { e.preventDefault(); onIndex(0); }
     else if (e.key === 'End') { e.preventDefault(); onIndex(count - 1); }
     else if ((e.key === 'Enter' || e.key === ' ') && current) { e.preventDefault(); activate(current); }
   };
+
+  // Arrow keys work straight away, without clicking the rolodex first. They're left alone while
+  // you're typing in a field, using another control (Enter/space), or a card is open.
+  useEffect(() => {
+    if (!keyboard) return;
+    const onWindowKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement;
+      if (t.closest('input, textarea, select, [contenteditable]')) return;
+      if (stageRef.current?.contains(t)) return; // the stage handles its own keys
+      if ((e.key === 'Enter' || e.key === ' ') && t.closest('button, a, [role="option"], label')) return;
+      onKeyDown(e);
+    };
+    window.addEventListener('keydown', onWindowKey);
+    return () => window.removeEventListener('keydown', onWindowKey);
+  });
 
   const label = !current
     ? emptyMessage
@@ -222,9 +138,9 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
             const look = cardLook(isDivider ? `divider-${item.group}` : item.recipe.id);
             const style = {
               ...look.style,
-              ...(isDivider ? { '--stock': dividerColors[item.group] } : null),
+              ...(isDivider ? { '--stock': dividerColor(item, dividerColors) } : null),
               '--d': d,
-              '--tab-x': `${isDivider ? dividerTabX(item.group) : plainTabX(item.ordinal)}%`,
+              '--tab-x': `${isDivider ? dividerTabX(item.index, item.total) : plainTabX(item.ordinal)}%`,
               zIndex: 100 - Math.abs(d),
             } as CSSProperties;
             const key = isDivider ? `divider-${item.group}` : item.recipe.id;
@@ -240,9 +156,30 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
                   <div className="card-face">
                     <InkFrame variant={look.frame} />
                     <CircledCount count={item.count} variant={look.circle} />
-                    <span className="divider-name">
-                      <Fruit glyph={DIVIDER_FRUIT[item.group]} className="divider-fruit" />
-                      {item.label}
+                    <span className={`divider-name ${item.plain ? 'is-letter' : ''}`}>
+                      {item.stars ? (
+                        // star dividers are just the stars, drawn; the words stay on the tab and for screen readers
+                        <span className="divider-stars">
+                          {Array.from({ length: item.stars }, (_, n) => (
+                            <Star key={n} fill={1} variant={look.star + n} className="divider-star" />
+                          ))}
+                          <span className="visually-hidden">{item.label}</span>
+                        </span>
+                      ) : (
+                        <>
+                          {!item.plain && (d === 0 ? (
+                            <FruitPicker
+                              glyph={dividerFruit(item.group, item.index, dividerFruits)}
+                              onChange={(g) => onDividerFruit(item.group, g)}
+                              label={`Change the fruit for ${item.label}`}
+                              className="divider-fruit"
+                            />
+                          ) : (
+                            <Fruit glyph={dividerFruit(item.group, item.index, dividerFruits)} className="divider-fruit" />
+                          ))}
+                          {item.label}
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -250,7 +187,7 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
             }
 
             const { recipe } = item;
-            const serves = recipe.servings && (/^serves\b/i.test(recipe.servings) ? recipe.servings.toLowerCase() : `serves ${recipe.servings}`);
+            const serves = servesLabel(recipe.servings);
             const meta = [recipe.totalTime, serves, recipe.cuisine].filter(Boolean);
             return (
               <div key={key} className={`index-card ${state}`} style={style} aria-hidden={d !== 0} onClick={onClick}>
@@ -262,11 +199,21 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
                   <header className={`card-header ${meta.length ? 'has-meta' : ''}`}>
                     <h2 className="card-title">{recipe.title}</h2>
                     {meta.length > 0 && <p className="card-meta">{meta.join('  ·  ')}</p>}
-                    <div className="card-stars" role="img" aria-label={`${recipe.rating} of 5 stars`}>
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <Star key={n} filled={n <= recipe.rating} variant={look.star + n} className="mini-star" />
-                      ))}
-                    </div>
+                    {d === 0 ? (
+                      // rate right from the rolodex: the front card's stars take clicks (halves too)
+                      <StarRating
+                        rating={recipe.rating}
+                        onRate={(value) => onRate(recipe, value)}
+                        variant={look.star}
+                        className="card-stars is-live"
+                      />
+                    ) : (
+                      <div className="card-stars" role="img" aria-label={ratingLabel(recipe.rating)}>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star key={n} fill={starFill(recipe.rating, n)} variant={look.star + n} className="mini-star" />
+                        ))}
+                      </div>
+                    )}
                   </header>
                   <InkRule variant={look.rule} />
                   <div className="card-columns">
@@ -307,13 +254,4 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
       </div>
     </section>
   );
-}
-
-const AMOUNT =
-  /^((?:[\d½¼¾⅓⅔⅛]+(?:[\s/.–-]+[\d½¼¾⅓⅔⅛]+)*)\s*(?:(?:cups?|tbsp|tsp|tablespoons?|teaspoons?|oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|l|cloves?|cans?|sticks?|pinch(?:es)?)\b\.?)?)\s+(.+)$/i;
-
-/** "1 1/4 cups bread flour" → ["1 1/4 cups", "bread flour"]: the amount gets its own column on the card. */
-function splitAmount(line: string): [string, string] {
-  const m = AMOUNT.exec(line.trim());
-  return m ? [m[1].trim(), m[2]] : ['', line];
 }
