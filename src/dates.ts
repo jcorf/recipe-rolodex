@@ -29,11 +29,17 @@ export function shortDay(day: string) {
 export function hash01(text: string) {
   let h = 2166136261;
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  // final mix, so inputs that differ by one character still land far apart
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
   return (h >>> 0) / 4294967296;
 }
 
-/** How far one stamp leans on its day, in degrees (-8 to 8): its own, and the same every time you look. */
-export const stampTilt = (recipeId: string, day: string) => +((hash01(`${recipeId}|${day}`) - 0.5) * 16).toFixed(1);
+/**
+ * How far one stamp leans on its day, in degrees (-8 to 8). `seed` is re-rolled each time the calendar
+ * opens or turns a page, so a recipe never leans the same way twice; within one look, the page and
+ * a picture of it agree.
+ */
+export const stampTilt = (recipeId: string, day: string, seed = 0) => +((hash01(`${seed}|${recipeId}|${day}`) - 0.5) * 16).toFixed(1);
 
 export const addMonths = (year: number, month: number, by: number) => {
   const d = new Date(year, month + by, 1);

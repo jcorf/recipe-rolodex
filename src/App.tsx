@@ -11,6 +11,7 @@ import { FruitMark } from './components/FruitMark';
 import { JamJar } from './components/JamJar';
 import { useDriftingLight } from './useDriftingLight';
 import { Letter } from './components/Letter';
+import { EditableTitle } from './components/EditableTitle';
 import { CalendarView } from './components/CalendarView';
 import { ShareSheet } from './components/ShareSheet';
 import { ActionTag } from './components/ActionTag';
@@ -33,7 +34,7 @@ function filterRecipes(recipes: Recipe[], query: string) {
   );
 }
 
-type Share = { kind: 'recipe'; id: string } | { kind: 'month'; year: number; month: number } | null;
+type Share = { kind: 'recipe'; id: string } | { kind: 'month'; year: number; month: number; seed: number } | null;
 
 type Open =
   | { kind: 'saved'; id: string }
@@ -155,7 +156,7 @@ export default function App() {
       <header className="desk-header">
         <h1 className="wordmark">
           <FruitMark glyph={settings?.titleFruit ?? 'h'} onChange={(titleFruit) => changeSettings({ titleFruit })} />
-          <span>my recipes</span>
+          <EditableTitle value={settings?.siteTitle ?? 'my recipes'} onChange={(siteTitle) => changeSettings({ siteTitle })} />
         </h1>
       </header>
 
@@ -220,8 +221,6 @@ export default function App() {
           if (patch.showFind === false) find(''); // putting find away clears it, so nothing stays hidden
           changeSettings(patch);
         }}
-        grainyStamps={settings?.grainyStamps ?? false}
-        onGrainyStamps={(grainyStamps) => changeSettings({ grainyStamps })}
         flipSound={settings?.flipSound ?? true}
         onFlipSound={(flipSound) => changeSettings({ flipSound })}
         glowPalette={settings?.glowPalette ?? 'peach'}
@@ -270,7 +269,8 @@ export default function App() {
           look={stampLook}
           onClose={closeCalendar}
           onOpenRecipe={(r) => { setCalendarOpen(false); setOpen({ kind: 'saved', id: r.id }); }}
-          onShare={(year, month) => setShare({ kind: 'month', year, month })}
+          onGrainy={(grainyStamps) => changeSettings({ grainyStamps })}
+          onShare={(year, month, seed) => setShare({ kind: 'month', year, month, seed })}
         />
       )}
 
@@ -287,7 +287,7 @@ export default function App() {
         <ShareSheet
           title={`${MONTH_NAMES[share.month]} ${share.year}, what I cooked`}
           filename={`cooked-${share.year}-${String(share.month + 1).padStart(2, '0')}.png`}
-          render={() => renderMonthImage(share.year, share.month, recipes, shareContext)}
+          render={() => renderMonthImage(share.year, share.month, recipes, shareContext, { seed: share.seed })}
           onClose={closeShare}
         />
       )}

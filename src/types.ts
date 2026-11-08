@@ -52,6 +52,8 @@ export interface Settings {
   flipSound: boolean;
   /** Stamps on the calendar get a worn, speckled print texture. */
   grainyStamps: boolean;
+  /** The name written at the top of the desk (click it to rewrite it). */
+  siteTitle: string;
   /** Which colours the cursor glow drifts between (a key of GLOWS). */
   glowPalette: GlowKey;
   /** Hex color per divider: one per category plus 'unsorted'. */

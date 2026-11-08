@@ -14,6 +14,7 @@ export function CookedPop({
 }: { recipe: Recipe; look: StampLook; onChange: (days: string[]) => void; innerRef: RefObject<HTMLDivElement> }) {
   const cooked = recipe.cooked ?? [];
   const start = cooked.length ? new Date(`${cooked[cooked.length - 1]}T12:00:00`) : new Date();
+  const [seed] = useState(() => Math.random()); // each opening lays the stamps a little differently
   const [at, setAt] = useState({ year: start.getFullYear(), month: start.getMonth() });
   const days = useMemo(() => new Map<string, Recipe[]>(cooked.map((d) => [d, [recipe]])), [cooked, recipe]);
   const flip = (by: number) => setAt((a) => addMonths(a.year, a.month, by));
@@ -31,7 +32,7 @@ export function CookedPop({
           <span className="cooked-month">{MONTH_NAMES[at.month]} <small>{at.year}</small></span>
           <button type="button" className="month-flip" aria-label="Next month" onClick={() => flip(1)}><PenIcon name="right" /></button>
         </div>
-        <MonthGrid year={at.year} month={at.month} days={days} look={look} compact onDay={toggle} />
+        <MonthGrid year={at.year} month={at.month} days={days} look={look} seed={seed} compact onDay={toggle} />
         <p className="cooked-total" aria-live="polite">
           {cooked.length ? `cooked ${cooked.length} ${cooked.length === 1 ? 'time' : 'times'}` : 'not cooked yet'}
         </p>

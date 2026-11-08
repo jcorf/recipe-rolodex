@@ -55,6 +55,8 @@ export const DEFAULT_SETTINGS = {
   flipSound: true,
   /** Stamps on the calendar get a worn, speckled print texture. */
   grainyStamps: false,
+  /** The name written at the top of the desk. */
+  siteTitle: 'my recipes',
   /** Colours the cursor glow drifts between. */
   glowPalette: 'peach',
   /** Pastel stock for each category divider card. */
