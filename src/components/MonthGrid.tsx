@@ -1,4 +1,4 @@
-import { MONTH_NAMES, WEEKDAYS, monthWeeks, pickShown, stampTilt, todayYmd } from '../dates';
+import { MONTH_NAMES, WEEKDAYS, monthWeeks, pickShown, rangeLabel, stampTilt, todayYmd, weekOf } from '../dates';
 import type { AteOutStyle, Recipe, StampCard, StampFinish } from '../types';
 import { Stamp } from './Stamp';
 import { dividerFruit } from './FruitMark';
@@ -33,8 +33,10 @@ export const stampFruit = (r: Recipe, look: StampLook) => dividerFruit(r.categor
  * With `onDay` every day is a button (used to mark a recipe cooked); otherwise stamps open their recipe.
  */
 export function MonthGrid({
-  year, month, days, look, seed = 0, compact = false, onDay, onStamp,
+  year, month, days, look, seed = 0, compact = false, onDay, onStamp, week,
 }: {
+  /** Show just the week this day falls in, instead of the month (a phone's pop-up calendar). */
+  week?: string;
   year: number;
   month: number;
   /** Recipes cooked, by day. */
@@ -47,19 +49,21 @@ export function MonthGrid({
   onStamp?: (recipe: StampCard) => void;
 }) {
   const today = todayYmd();
+  const weeks = week ? [weekOf(week)] : monthWeeks(year, month);
+  const name = week ? rangeLabel(weeks[0][0]!, weeks[0][6]!) : `${MONTH_NAMES[month]} ${year}`;
   return (
-    <table className={`month-grid ${compact ? 'is-compact' : ''}`} aria-label={`${MONTH_NAMES[month]} ${year}`}>
+    <table className={`month-grid ${compact ? 'is-compact' : ''} ${week ? 'is-week' : ''}`} aria-label={name}>
       <thead>
         <tr>{WEEKDAYS.map((d, i) => <th key={i} scope="col">{d}</th>)}</tr>
       </thead>
       <tbody>
-        {monthWeeks(year, month).map((week, w) => (
+        {weeks.map((row, w) => (
           <tr key={w}>
-            {week.map((day, i) => {
+            {row.map((day, i) => {
               if (!day) return <td key={i} className="is-blank" />;
               const cooked = days.get(day) ?? [];
               const shown = pickShown(cooked, day, seed);
-              const label = `${MONTH_NAMES[month]} ${Number(day.slice(8))}${cooked.length ? `, ${cooked.map((r) => (r.ateOut ? `ate at ${r.title}` : `cooked ${r.title}`)).join(', ')}` : ''}`;
+              const label = `${MONTH_NAMES[Number(day.slice(5, 7)) - 1]} ${Number(day.slice(8))}${cooked.length ? `, ${cooked.map((r) => (r.ateOut ? `ate at ${r.title}` : `cooked ${r.title}`)).join(', ')}` : ''}`;
               const face = (
                 <>
                   <span className="day-num">{Number(day.slice(8))}</span>

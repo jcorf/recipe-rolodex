@@ -1,6 +1,9 @@
 import type { Draft, Recipe, Settings } from '../types';
 import type { PhotoFiles, PhotoSize } from '../photos';
 
+/** Which cards a clear-out takes. */
+export type CardKinds = 'recipes' | 'restaurants' | 'both';
+
 /** What adding recipes from an exported .json file did. */
 export interface ImportResult {
   added: Recipe[];
@@ -19,6 +22,10 @@ export interface Store {
   create(draft: Draft): Promise<Recipe>;
   update(id: string, patch: Draft): Promise<Recipe>;
   remove(id: string): Promise<void>;
+  /** Throws away every card of a kind (or all of them), with their photos; resolves to how many went. */
+  removeAll(kind: CardKinds): Promise<number>;
+  /** Puts the sample cards back in the box, fresh and unrated (one already there is replaced). */
+  reseed(): Promise<Recipe[]>;
   /** Adds cards from exported .json (one card, a list, or an "export all" file). */
   importRecipes(payload: unknown): Promise<ImportResult>;
   settings(): Promise<Settings>;

@@ -92,7 +92,16 @@ export default function App() {
   // a restaurant-only sort (price, location…) can't stay on once restaurants are off
   const chosenSort = settings?.sortBy ?? 'category';
   const sortBy = sortOptionsFor(kinds).some((o) => o.key === chosenSort) ? chosenSort : fallbackSort(kinds);
-  const items = useMemo(() => buildItems(shown, sortBy), [shown, sortBy]);
+  const sortedItems = useMemo(() => buildItems(shown, sortBy), [shown, sortBy]);
+  // Just after a rating, the box keeps its old order for a moment (the stars fill in, the confetti
+  // falls), then the card is filed in its new place and the box flips there with it.
+  const [held, setHeld] = useState<RolodexItem[] | null>(null);
+  const items = useMemo(() => {
+    if (!held) return sortedItems;
+    const byId = new Map(shown.map((r) => [r.id, r]));
+    return held.flatMap<RolodexItem>((it) => (it.kind === 'recipe' ? (byId.has(it.recipe.id) ? [{ ...it, recipe: byId.get(it.recipe.id)! }] : []) : [it]));
+  }, [held, sortedItems, shown]);
+  const releaseHeld = useRef<number>();
 
   // Settings change on the page at once and are saved in the background.
   const changeSettings = (patch: Partial<Settings>) => {
@@ -109,6 +118,17 @@ export default function App() {
   useEffect(() => {
     setIndex((i) => Math.min(i, Math.max(0, items.length - 1)));
   }, [items.length]);
+
+  // Rating or editing a card can move it in the box (sorted by stars, a new name under a-z…). The card
+  // you were looking at stays in front, rather than the box showing whatever slid into its place.
+  const follow = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const id = follow.current;
+    if (!id) return;
+    follow.current = null;
+    const i = items.findIndex((item) => item.kind === 'recipe' && item.recipe.id === id);
+    if (i !== -1) setIndex(i);
+  }, [items]);
 
   const focusById = (id: string, list: Recipe[]) => {
     const i = buildItems(list, sortBy).findIndex((item) => item.kind === 'recipe' && item.recipe.id === id);
@@ -223,8 +243,15 @@ export default function App() {
               }
               keyboard={!open && !calendarOpen && !share}
               onRate={(recipe, rating) => {
+                setHeld((h) => h ?? items);
+                window.clearTimeout(releaseHeld.current);
+                releaseHeld.current = window.setTimeout(() => {
+                  follow.current = recipe.id;
+                  setHeld(null);
+                }, 1100);
                 setRecipes((list) => list.map((r) => (r.id === recipe.id ? { ...r, rating } : r)));
                 api.update(recipe.id, { rating }).catch(() => {
+                  follow.current = recipe.id;
                   setRecipes((list) => list.map((r) => (r.id === recipe.id ? recipe : r))); // put it back if the save failed
                 });
               }}
@@ -275,6 +302,20 @@ export default function App() {
         exportFormat={exportFormat}
         onExportFormat={(format) => { setExportFormat(format); saveExportFormat(format); }}
         onExportAll={() => exportCards(recipes, exportFormat)}
+        counts={{ recipes: recipes.filter((r) => r.kind !== 'restaurant').length, restaurants: recipes.filter((r) => r.kind === 'restaurant').length }}
+        onClear={async (kind) => {
+          const gone = await api.removeAll(kind);
+          setRecipes((list) => list.filter((r) => !(kind === 'both' || (kind === 'restaurants') === (r.kind === 'restaurant'))));
+          setIndex(0);
+          return `${gone} ${gone === 1 ? 'card' : 'cards'} thrown away.`;
+        }}
+        onReseed={async () => {
+          const fresh = await api.reseed();
+          const ids = new Set(fresh.map((r) => r.id));
+          setRecipes((list) => [...list.filter((r) => !ids.has(r.id)), ...fresh]);
+          setIndex(0);
+          return `${fresh.length} sample cards are back in the box, unrated.`;
+        }}
         onImportFiles={async (files) => {
           try {
             const summary = await importFiles(files, api.importRecipes);
@@ -298,6 +339,7 @@ export default function App() {
           onClose={close}
           onSave={async (patch) => {
             const saved = await api.update(openRecipe.id, patch);
+            follow.current = saved.id;
             setRecipes((list) => list.map((r) => (r.id === saved.id ? saved : r)));
             return saved;
           }}
