@@ -1589,6 +1589,11 @@ button:disabled { cursor: default; }
 }
 
 .file-option:disabled { opacity: 0.45; cursor: default; }
+/* your account: who is signed in, in the same script as the other notes */
+.account-who { margin: 0.1rem 0 0.2rem; font-family: var(--script); font-size: 1rem; line-height: 1.4; color: var(--ink); }
+.account-who small { display: block; font-family: var(--sans); font-size: 0.75rem; color: var(--ink-soft); }
+.account-soon { margin: 0.1rem 0 0.3rem 1.6rem; font-family: var(--script); font-size: 0.95rem; line-height: 1.35; color: var(--ink-soft); }
+.account-row .file-option .sort-label { white-space: normal; }
 /* emptying the box: a short ladder of questions, each one a step further, the last in red */
 .clear-out { margin-top: 0.15rem; }
 .clear-out .file-option .sort-label { white-space: normal; line-height: 1.3; }
