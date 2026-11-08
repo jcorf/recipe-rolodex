@@ -408,17 +408,26 @@ button:disabled { cursor: default; }
   touch-action: pan-y; /* a sideways swipe flips cards; up and down still scrolls the page */
 }
 
-/* two pen arrows above the card file for touch screens, where there's no keyboard or wheel to go back with */
+/* two pen arrows floating at the bottom for touch screens, where there's no keyboard or wheel to go back with */
 .rolodex-pager { display: none; }
+/* a long front card hangs below the card file's box, where the page doesn't know about it: this makes room for it */
+.rolodex-room { flex: none; }
 @media (max-width: 40rem), (pointer: coarse) {
   .rolodex-pager {
     display: flex;
     justify-content: center;
-    gap: 1.6rem;
-    margin: 0 0 0.3rem; /* above the card file, never over a long card's text */
-    position: relative;
-    z-index: 3;
+    gap: 1.4rem;
+    /* floating at the bottom, in the gap between the surprise tag and the jar and just above their row,
+       so they're in reach however far down a long card you've scrolled */
+    position: fixed;
+    left: 50%;
+    bottom: 4.9rem;
+    translate: -50% 0;
+    z-index: 4; /* under the surprise card and the settings, which open over them */
+    opacity: 0.8;
+    pointer-events: none; /* only the buttons take taps, so the gap between them doesn't block the card behind */
   }
+  .rolodex-pager button { pointer-events: auto; }
   .rolodex-pager button {
     display: grid;
     place-items: center;
@@ -427,12 +436,12 @@ button:disabled { cursor: default; }
     padding: 0;
     border: none;
     border-radius: 50%;
-    background: rgb(255 254 250 / 0.7);
+    background: rgb(255 254 250 / 0.55);
     color: var(--ink);
-    box-shadow: 0 1px 3px rgb(60 55 50 / 0.2);
+    box-shadow: 0 1px 4px rgb(60 55 50 / 0.18);
     transition: transform 0.2s var(--ease-out), background-color 0.2s;
   }
-  .rolodex-pager button:active { transform: scale(0.92); background: rgb(255 254 250 / 0.95); }
+  .rolodex-pager button:active { transform: scale(0.92); background: rgb(255 254 250 / 0.9); }
   .rolodex-pager button:disabled { opacity: 0.35; }
   .rolodex-pager .pen-icon { width: 1.5rem; height: 1.5rem; }
 }
@@ -517,6 +526,8 @@ button:disabled { cursor: default; }
 }
 .is-divider .card-face,
 .is-divider .card-tab { background-color: var(--stock, var(--divider)); }
+/* a tab of a card further back darkens with its face, so it never reads a shade lighter than its own card */
+.card-tab { box-shadow: inset 0 0 0 100vmax rgb(40 35 30 / calc(max(var(--d, 0), 0) * 0.035)); }
 /* A card's grain is a layer turned to its own angle. For a card a few times taller than it is wide (a
    long recipe on a phone) the old "60% bigger each way" layer no longer reached the corners once turned,
    leaving half the card bare. A square three times the card's height, centred on it, covers any tilt. */
@@ -1285,6 +1296,8 @@ button:disabled { cursor: default; }
 }
 
 /* no room beside the card (narrow window or zoomed in): the tags become a row along the bottom */
+/* the close tag is only for phones, where the card fills the screen and there's nothing off it to tap */
+.action-tag.is-close { display: none; }
 @media (max-width: 70rem) {
   .letter-overlay { padding-bottom: 7rem; }
   .card-actions {
@@ -1294,7 +1307,8 @@ button:disabled { cursor: default; }
     translate: -50% 0;
     flex-direction: row;
     align-items: center;
-    padding: 0.55rem 0.8rem;
+    max-width: calc(100vw - 1rem);
+    padding: 0.55rem 1.35rem; /* room at each rounded end, so the first and last tags sit inside the bar */
     border-radius: 999px;
     background: rgb(245 243 238 / 0.94);
     box-shadow: 0 4px 16px rgb(60 45 30 / 0.18);
@@ -1303,6 +1317,15 @@ button:disabled { cursor: default; }
   .action-label { left: 50%; top: auto; bottom: calc(100% + 0.55rem); translate: -50% 0.3rem; }
   .action-tag:hover .action-label,
   .action-tag:focus-visible .action-label { translate: -50% 0; }
+}
+@media (max-width: 40rem), (pointer: coarse) {
+  .action-tag.is-close { display: grid; }
+  .card-actions { gap: 0.55rem; }
+}
+@media (max-width: 26rem) {
+  /* six tags across a small phone: a touch narrower each, still well over a fingertip */
+  .card-actions .action-tag:not(.is-written) { width: 2.75rem; }
+  .card-actions { gap: 0.5rem; padding-inline: 1.5rem; }
 }
 
 /* ───────── jam jar: the way into settings ───────── */
@@ -1836,17 +1859,18 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 /* the note sits on the picture's top edge and never takes a click: the choices sit below it */
 .share-picture .letter-notice { position: absolute; left: 50%; top: 1.2rem; translate: -50% 0; margin: 0; white-space: nowrap; pointer-events: none; }
 
-/* a restaurant's tab is as tall as a divider's, so its fork shows in full above the card instead of
-   being cut off at the card's edge */
-.card-tab.is-plain.is-restaurant {
-  top: -2.1rem;
-  width: 3.6rem;
-  height: 3rem;
-  display: grid;
-  place-items: start center;
-  padding-top: 0.3rem;
+/* a restaurant's tab is a recipe tab with a small pen dot on it */
+.tab-dot {
+  position: absolute;
+  top: 0.13rem; /* centred on the part of the tab that shows above the card */
+  left: 50%;
+  translate: -50% 0;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.8;
 }
-.card-tab.is-restaurant .pen-icon { width: 1.5rem; height: 1.5rem; color: var(--ink); stroke-width: 1.6; }
 .card-thoughts { margin: 0; color: var(--ink); white-space: pre-line; } /* takes the recipe writing of its column */
 
 /* ───────── restaurants, visits and the photo editor ───────── */
@@ -1977,6 +2001,10 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
   from { translate: 0 9rem; opacity: 0.4; }
   35% { opacity: 1; }
 }
+
+/* five stars: a handful of paper confetti, over everything and never in the way of a tap */
+.confetti { position: fixed; inset: 0; z-index: 60; pointer-events: none; overflow: hidden; }
+.confetti span { position: absolute; border-radius: 1px; will-change: transform, opacity; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
