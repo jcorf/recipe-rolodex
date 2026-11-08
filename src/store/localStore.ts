@@ -2,7 +2,7 @@
 import type { Recipe, Settings } from '../types';
 import type { Store } from './types';
 import type { PhotoFiles } from '../photos';
-import { applySettings, cardsToAdd, newRecipe, patchRecipe, withDefaults } from './rules';
+import { applySettings, cardsToAdd, newId, newRecipe, patchRecipe, withDefaults } from './rules';
 import { askToPersist, del, get, getAll, getAllKeys, put, tx } from './db';
 import seed from './seed.json';
 
@@ -142,7 +142,7 @@ export const localStore: Store = {
   },
 
   async savePhoto({ main, thumb }) {
-    const record: PhotoRecord = { id: crypto.randomUUID(), main, thumb, createdAt: Date.now() };
+    const record: PhotoRecord = { id: newId(), main, thumb, createdAt: Date.now() };
     await tx('photos', 'readwrite', (t) => put(t, 'photos', record));
     void askToPersist();
     return record.id;
