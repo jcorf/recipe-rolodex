@@ -41,6 +41,15 @@ export function hash01(text: string) {
  */
 export const stampTilt = (recipeId: string, day: string, seed = 0) => +((hash01(`${seed}|${recipeId}|${day}`) - 0.5) * 16).toFixed(1);
 
+/**
+ * A day with more than two dishes only has room for two stamps (the rest show as "+n"). Which two is
+ * a shuffle that follows `seed`, so the dice can deal a new pair; with two or fewer nothing moves.
+ */
+export function pickShown<T extends { id: string }>(list: T[], day: string, seed: number): T[] {
+  if (list.length <= 2) return list;
+  return [...list].sort((a, b) => hash01(`${seed}|${a.id}|${day}|pick`) - hash01(`${seed}|${b.id}|${day}|pick`)).slice(0, 2);
+}
+
 export const addMonths = (year: number, month: number, by: number) => {
   const d = new Date(year, month + by, 1);
   return { year: d.getFullYear(), month: d.getMonth() };

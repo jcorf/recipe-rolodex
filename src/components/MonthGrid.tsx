@@ -1,4 +1,4 @@
-import { MONTH_NAMES, WEEKDAYS, monthWeeks, stampTilt, todayYmd } from '../dates';
+import { MONTH_NAMES, WEEKDAYS, monthWeeks, pickShown, stampTilt, todayYmd } from '../dates';
 import type { Recipe, StampFinish } from '../types';
 import { Stamp } from './Stamp';
 import { dividerFruit } from './FruitMark';
@@ -45,7 +45,7 @@ export function MonthGrid({
             {week.map((day, i) => {
               if (!day) return <td key={i} className="is-blank" />;
               const cooked = days.get(day) ?? [];
-              const shown = cooked.slice(0, 2);
+              const shown = pickShown(cooked, day, seed);
               const label = `${MONTH_NAMES[month]} ${Number(day.slice(8))}${cooked.length ? `, cooked ${cooked.map((r) => r.title).join(', ')}` : ''}`;
               const face = (
                 <>
