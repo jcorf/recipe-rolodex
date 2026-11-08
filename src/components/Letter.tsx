@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { CATEGORIES, type Category, type Draft, type Recipe } from '../types';
-import { servesLabel, splitAmount } from '../recipeText';
+import { servesLabel, splitAmount, stepText } from '../recipeText';
 import { cardLook, InkFrame, InkRule } from './ink';
 import { HOLDER } from './inkPaths';
 import { PenIcon, type PenIconName } from './PenIcons';
-import { exportOne } from '../exportRecipes';
 import { GinghamBow, PatchHeart } from './Stickers';
 import { StarRating } from './StarRating';
+import { InkSelect } from './InkSelect';
 
 /**
  * The open recipe: the rolodex card pulled out of the box and enlarged, standing in a
@@ -23,6 +23,9 @@ interface Props {
   onImport?: (url: string) => Promise<{ draft: Draft; notice: string }>;
   onDelete: () => Promise<void>;
   onClose: () => void;
+  /** Saved cards only: save this card in the chosen export format. */
+  onExport?: () => void;
+  exportLabel?: string;
 }
 
 interface Form {
@@ -64,7 +67,7 @@ const FORM_ID = 'open-card-form';
 
 /** One floating tag: a pen symbol, with its name shown on hover/focus and read out to screen readers. */
 function ActionTag({
-  icon, label, tone = 'kraft', type = 'button', onClick, disabled, autoFocus,
+  icon, label, tone = 'kraft', type = 'button', onClick, disabled, autoFocus, written,
 }: {
   icon: PenIconName;
   label: string;
@@ -73,26 +76,29 @@ function ActionTag({
   onClick?: () => void;
   disabled?: boolean;
   autoFocus?: boolean;
+  /** Write the name on the tag in pen instead of showing it on hover. */
+  written?: boolean;
 }) {
   return (
     <button
       type={type}
       form={type === 'submit' ? FORM_ID : undefined}
-      className={`action-tag is-${tone}`}
+      className={`action-tag is-${tone} ${written ? 'is-written' : ''}`}
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
       autoFocus={autoFocus}
     >
+      <span className="tag-paper" aria-hidden="true" />
       <PenIcon name={icon} />
-      <span className="action-label" aria-hidden="true">{label}</span>
+      <span className={written ? 'tag-written' : 'action-label'} aria-hidden="true">{label}</span>
     </button>
   );
 }
 
 const isLink = (text: string) => /^https?:\/\/\S+$/i.test(text.trim());
 
-export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onClose }: Props) {
+export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onClose, onExport, exportLabel = 'export card' }: Props) {
   const [editing, setEditing] = useState(isNew);
   const [form, setForm] = useState<Form>(() => toForm(recipe));
   const [rating, setRating] = useState(recipe.rating ?? 0);
@@ -263,10 +269,12 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
                   <div className="meta-fields">
                     <label>
                       filed under
-                      <select className="ink-input ink-select" value={form.category} onChange={set('category')}>
-                        <option value="">unsorted</option>
-                        {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-                      </select>
+<InkSelect
+                        label="Filed under"
+                        value={form.category}
+                        onChange={(category) => setForm((f) => ({ ...f, category: category as Category | '' }))}
+                        options={[{ value: '', label: 'unsorted' }, ...CATEGORIES.map((c) => ({ value: c.key, label: c.label }))]}
+                      />
                     </label>
                     <label>time <input className="ink-input" value={form.totalTime} onChange={set('totalTime')} placeholder="e.g. 30 min" /></label>
                     <label>serves <input className="ink-input" value={form.servings} onChange={set('servings')} placeholder="e.g. 4" /></label>
@@ -329,7 +337,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
                 {editing ? (
                   <textarea className="ink-area hand-area" value={form.steps} onChange={set('steps')} rows={Math.max(4, lines(form.steps).length * 2)} placeholder="one step per line" aria-label="Directions, one step per line" />
                 ) : shown.steps?.length ? (
-                  <ol className="card-steps">{shown.steps.map((step, i) => <li key={i}>{step}</li>)}</ol>
+                  <ol className="card-steps">{shown.steps.map((step, i) => <li key={i}>{stepText(step)}</li>)}</ol>
                 ) : (
                   <p className="card-col-empty">none written down yet</p>
                 )}
@@ -370,7 +378,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
         {!editing && !confirmTear && (
           <>
             <ActionTag icon="edit" label="edit card" onClick={() => setEditing(true)} />
-            {!isNew && <ActionTag icon="export" label="export card (.json)" onClick={() => exportOne(recipe as Recipe)} />}
+            {!isNew && onExport && <ActionTag icon="export" label={exportLabel} onClick={onExport} />}
             {!isNew && (
               <ActionTag icon="tear" label="tear up card" tone="quiet" onClick={() => setConfirmTear(true)} />
             )}
@@ -378,8 +386,8 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
         )}
         {editing && !confirmTear && (
           <>
-            <ActionTag icon="save" label={busy ? 'saving…' : isNew ? 'file it in the rolodex' : 'save card'} tone="primary" type="submit" disabled={busy} />
-            <ActionTag icon="cancel" label={isNew ? 'tuck it back' : 'never mind'} onClick={isNew ? onClose : cancelEdit} />
+            <ActionTag icon="save" label={busy ? 'saving…' : isNew ? 'file it' : 'save card'} tone="primary" type="submit" disabled={busy} written />
+            <ActionTag icon="tuck" label={isNew ? 'tuck it back' : 'never mind'} onClick={isNew ? onClose : cancelEdit} written />
             {!isNew && (
               <ActionTag icon="tear" label="tear up card" tone="quiet" onClick={() => setConfirmTear(true)} />
             )}

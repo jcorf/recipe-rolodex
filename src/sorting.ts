@@ -61,9 +61,7 @@ export function groupRecipes(recipes: Recipe[], sortBy: SortBy): Group[] {
       break;
     }
     case 'rating': {
-      // all five star levels and "not rated" always show, even when empty
-      for (let n = 5; n >= 1; n--) buckets.set(`stars-${n}`, { key: `stars-${n}`, label: `${n} star${n > 1 ? 's' : ''}`, recipes: [], stars: n });
-      buckets.set('stars-0', { key: 'stars-0', label: 'not rated', recipes: [] });
+      // only star levels that have cards get a divider
       for (const r of recipes) {
         const stars = Math.max(0, Math.min(5, Math.floor(r.rating || 0))); // 4.5 counts as 4
         if (stars === 0) add('stars-0', 'not rated', r);

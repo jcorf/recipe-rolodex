@@ -36,6 +36,9 @@ const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
 export const SORT_OPTIONS = ['category', 'rating', 'time', 'cuisine', 'alpha'];
 
+/** Colour pairs for the glow that follows the cursor (see GLOWS in src/types.ts). */
+export const GLOW_OPTIONS = ['peach', 'berry', 'lemon', 'mint', 'sky', 'lavender'];
+
 export const DEFAULT_SETTINGS = {
   /** How the rolodex is divided. */
   sortBy: 'category',
@@ -48,6 +51,10 @@ export const DEFAULT_SETTINGS = {
   /** Desk objects you can put away: the blank-card stack and the find slip. */
   showNewCard: true,
   showFind: true,
+  /** The paper-flick sound when a card flips. */
+  flipSound: true,
+  /** Colours the cursor glow drifts between. */
+  glowPalette: 'peach',
   /** Pastel stock for each category divider card. */
   dividerColors: {
     breakfast: '#f6e7b0',

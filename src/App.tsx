@@ -1,15 +1,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
-import { CATEGORIES, type Draft, type Recipe, type Settings } from './types';
-import { Rolodex, buildItems } from './components/Rolodex';
-import { CardStack, FindSlip } from './components/DeskObjects';
-import { exportAll } from './exportRecipes';
+import { CATEGORIES, GLOWS, type Draft, type Recipe, type Settings } from './types';
+import { Rolodex, buildItems, type RolodexItem } from './components/Rolodex';
+import { CardStack, FindSlip, SurpriseTag, type SurpriseOptions } from './components/DeskObjects';
+import {
+  exportCard, exportCards, importFiles, importMessage,
+  loadExportFormat, saveExportFormat, type ExportFormat,
+} from './exportRecipes';
 import { FruitMark } from './components/FruitMark';
 import { JamJar } from './components/JamJar';
 import { useDriftingLight } from './useDriftingLight';
 import { Letter } from './components/Letter';
 
+/** The cursor glow's two colours, as CSS variables on the glow layer. */
+function glowStyle(key?: string): React.CSSProperties {
+  const g = GLOWS.find((x) => x.key === key) ?? GLOWS[0];
+  return { '--glow-warm': g.warm, '--glow-cool': g.cool } as React.CSSProperties;
+}
+
 const categoryLabel = (key: string) => CATEGORIES.find((c) => c.key === key)?.label ?? '';
+
+function filterRecipes(recipes: Recipe[], query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return recipes;
+  return recipes.filter((r) =>
+    [r.title, r.cuisine, r.category, categoryLabel(r.category), r.review, ...r.ingredients].some((field) => field.toLowerCase().includes(q)),
+  );
+}
 
 type Open =
   | { kind: 'saved'; id: string }
@@ -24,6 +41,7 @@ export default function App() {
   const [index, setIndex] = useState(0);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Open>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>(loadExportFormat);
   const findRef = useRef<HTMLInputElement>(null);
 
   const ambientRef = useRef<HTMLDivElement>(null);
@@ -37,13 +55,7 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return recipes;
-    return recipes.filter((r) =>
-      [r.title, r.cuisine, r.category, categoryLabel(r.category), r.review, ...r.ingredients].some((field) => field.toLowerCase().includes(q)),
-    );
-  }, [recipes, query]);
+  const shown = useMemo(() => filterRecipes(recipes, query), [recipes, query]);
 
   const sortBy = settings?.sortBy ?? 'category';
   const items = useMemo(() => buildItems(shown, sortBy), [shown, sortBy]);
@@ -67,6 +79,26 @@ export default function App() {
     }
   };
 
+  /** Cuisines in the box, for the surprise card's menu. */
+  const cuisines = useMemo(
+    () => [...new Set(recipes.map((r) => r.cuisine.trim().toLowerCase()).filter(Boolean))].sort(),
+    [recipes],
+  );
+
+  /** The dice: jump to a random card with no stars yet (or any card), by meal or cuisine if asked. Returns false if none fit. */
+  const surprise = ({ includeCooked, category, cuisine }: SurpriseOptions) => {
+    const front = items[index];
+    const pool = recipes.filter((r) =>
+      (includeCooked || !r.rating) &&
+      (!category || (category === 'unsorted' ? !r.category : r.category === category)) &&
+      (!cuisine || r.cuisine.trim().toLowerCase() === cuisine) &&
+      !(front?.kind === 'recipe' && front.recipe.id === r.id && (recipes.length > 1)),
+    );
+    if (!pool.length) return false;
+    focusById(pool[Math.floor(Math.random() * pool.length)].id, recipes);
+    return true;
+  };
+
   /** Pasting a link on a new card's first line fills the card from the page. */
   const importLink = async (url: string) => {
     const { found, draft } = await api.importLink(url);
@@ -78,9 +110,12 @@ export default function App() {
     };
   };
 
+  /** Where a search starts: on its first recipe, not the divider above it. */
+  const firstRecipe = (list: RolodexItem[]) => Math.max(0, list.findIndex((item) => item.kind === 'recipe'));
+
   const find = (q: string) => {
     setQuery(q);
-    setIndex(0);
+    setIndex(q.trim() ? firstRecipe(buildItems(filterRecipes(recipes, q), sortBy)) : 0);
   };
 
   // "/" jumps to the find slip (unless you're already writing somewhere, or a card is open)
@@ -101,7 +136,7 @@ export default function App() {
 
   return (
     <div className="desk" data-recipe-font={settings?.recipeFont ?? 'hand'}>
-      <div ref={ambientRef} className="ambient" aria-hidden="true" />
+      <div ref={ambientRef} className="ambient" style={glowStyle(settings?.glowPalette)} aria-hidden="true" />
       <header className="desk-header">
         <h1 className="wordmark">
           <FruitMark glyph={settings?.titleFruit ?? 'h'} onChange={(titleFruit) => changeSettings({ titleFruit })} />
@@ -121,6 +156,7 @@ export default function App() {
             <Rolodex
               dividerColors={settings?.dividerColors ?? {}}
               dividerFruits={settings?.dividerFruits ?? {}}
+              flipSound={settings?.flipSound ?? true}
               onDividerFruit={(group, glyph) =>
                 changeSettings({ dividerFruits: { ...settings?.dividerFruits, [group]: glyph } })
               }
@@ -136,6 +172,7 @@ export default function App() {
               index={index}
               onIndex={setIndex}
               onOpen={(r) => setOpen({ kind: 'saved', id: r.id })}
+              onNew={() => setOpen({ kind: 'draft', draft: {} })}
               emptyMessage={
                 loading
                   ? 'dusting off the cards…'
@@ -152,6 +189,8 @@ export default function App() {
         )}
       </main>
 
+      {!loadError && recipes.length > 0 && <SurpriseTag onPick={surprise} cuisines={cuisines} />}
+
       <JamJar
         sortBy={sortBy}
         onSortBy={(next) => changeSettings({ sortBy: next })}
@@ -162,7 +201,22 @@ export default function App() {
           if (patch.showFind === false) find(''); // putting find away clears it, so nothing stays hidden
           changeSettings(patch);
         }}
-        onExportAll={() => exportAll(recipes)}
+        flipSound={settings?.flipSound ?? true}
+        onFlipSound={(flipSound) => changeSettings({ flipSound })}
+        glowPalette={settings?.glowPalette ?? 'peach'}
+        onGlowPalette={(glowPalette) => changeSettings({ glowPalette })}
+        exportFormat={exportFormat}
+        onExportFormat={(format) => { setExportFormat(format); saveExportFormat(format); }}
+        onExportAll={() => exportCards(recipes, exportFormat)}
+        onImportFiles={async (files) => {
+          try {
+            const summary = await importFiles(files, api.importRecipes);
+            if (summary.added.length) setRecipes((list) => [...list, ...summary.added]);
+            return importMessage(summary);
+          } catch (err) {
+            return (err as Error).message;
+          }
+        }}
       />
 
       {open?.kind === 'saved' && openRecipe && (
@@ -170,6 +224,8 @@ export default function App() {
           key={openRecipe.id}
           recipe={openRecipe}
           isNew={false}
+          exportLabel={`export card (.${exportFormat})`}
+          onExport={() => exportCard(openRecipe, exportFormat)}
           onClose={close}
           onSave={async (patch) => {
             const saved = await api.update(openRecipe.id, patch);

@@ -14,6 +14,9 @@
   --enamel: #b5303a;         /* rolodex body, gingham, heart */
   --enamel-deep: #8a1f28;
 
+  --glow-warm: 247 215 199;   /* cursor glow colours: set from the glow setting */
+  --glow-cool: 218 228 210;
+
   --card-w: min(38rem, 88vw);
   --card-h: calc(var(--card-w) * 0.62);
 
@@ -64,14 +67,14 @@ body {
 .ambient::before { /* warm, on the cursor */
   width: 64vmax;
   height: 64vmax;
-  background: radial-gradient(closest-side, rgb(247 215 199 / 0.9), rgb(247 215 199 / 0.35) 55%, transparent);
+  background: radial-gradient(closest-side, rgb(var(--glow-warm) / 0.9), rgb(var(--glow-warm) / 0.35) 55%, transparent);
   transform: translate3d(calc(var(--mx, 0.5) * 100vw - 50%), calc(var(--my, 0.42) * 100vh - 50%), 0);
   opacity: var(--glow, 0.55);
 }
 .ambient::after { /* cool sage, drifting on the far side */
   width: 80vmax;
   height: 80vmax;
-  background: radial-gradient(closest-side, rgb(218 228 210 / 0.85), rgb(218 228 210 / 0.3) 55%, transparent);
+  background: radial-gradient(closest-side, rgb(var(--glow-cool) / 0.85), rgb(var(--glow-cool) / 0.3) 55%, transparent);
   transform: translate3d(calc((1 - var(--mx, 0.5)) * 100vw - 50%), calc((1 - var(--my, 0.42)) * 100vh - 50%), 0);
   opacity: calc(var(--glow, 0.55) * 0.85);
 }
@@ -173,6 +176,72 @@ button:disabled { cursor: default; }
 .desk-side.is-left { justify-content: flex-end; }
 .desk-side.is-right { justify-content: flex-start; }
 
+/* the dice: a kraft tag in the bottom-left corner (opposite the jar) that jumps to something you haven't cooked */
+.surprise {
+  position: fixed;
+  left: clamp(1rem, 3vw, 2.25rem);
+  bottom: 1.5rem;
+  z-index: 5;
+}
+.surprise-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  color: var(--ink);
+  filter: drop-shadow(0 1px 1px rgb(70 50 30 / 0.3)) drop-shadow(0 3px 6px rgb(70 50 30 / 0.16));
+  rotate: 1.5deg;
+  transition: transform 0.25s var(--ease-out), filter 0.25s var(--ease-out);
+}
+.surprise-tag::before { /* punched hole, like the card tags */
+  content: '';
+  position: absolute;
+  left: 0.55rem;
+  top: 50%;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: -0.2rem;
+  border-radius: 50%;
+  background: #efe1d0;
+  box-shadow: inset 0 1px 1px rgb(60 40 30 / 0.45);
+}
+.surprise-tag:hover,
+.surprise-tag:focus-within {
+  transform: translateY(-2px) rotate(-1.5deg);
+  filter: drop-shadow(0 2px 2px rgb(70 50 30 / 0.24)) drop-shadow(0 6px 10px rgb(70 50 30 / 0.2));
+}
+.surprise-go,
+.surprise-more {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: none;
+  color: inherit;
+}
+.surprise-go {
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem 0.4rem 1.5rem;
+  font-family: var(--script);
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+.surprise-more { padding: 0 0.7rem 0 0.3rem; border-left: 1px dashed rgb(61 60 64 / 0.3); margin: 0.35rem 0; }
+.surprise-more .pen-icon { width: 1.1rem; height: 1.1rem; transition: rotate 0.25s var(--ease-out); }
+.surprise-more[aria-expanded='true'] .pen-icon { rotate: 180deg; }
+.surprise-go .pen-icon { width: 1.3rem; height: 1.3rem; transition: rotate 0.4s var(--ease-out); }
+.surprise-go:hover .pen-icon,
+.surprise-go:focus-visible .pen-icon { rotate: 180deg; }
+.surprise-pop { left: 0; bottom: calc(100% + 0.6rem); width: 13.5rem; rotate: 1deg; }
+.surprise-field {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+  font-family: var(--script);
+  font-size: 1.1rem;
+}
+.surprise-field .ink-input { flex: 1; max-width: 8rem; font-family: var(--sans); font-size: 0.9rem; }
+
 /* cotton for small desk objects: the same stock, deckle and per-object grain as the cards */
 .stack-card,
 .slip-paper {
@@ -181,6 +250,7 @@ button:disabled { cursor: default; }
   isolation: isolate;
   overflow: hidden;
   background-color: var(--card);
+  -webkit-mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
 }
 .stack-card::before,
@@ -335,6 +405,8 @@ button:disabled { cursor: default; }
   margin: 0 auto;
   transform-origin: 50% 100%;
   transition: transform 0.6s var(--ease-out), opacity 0.35s, height 0.5s var(--ease-out);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 /* The card's shadow is a soft box tucked just inside the torn edge. It's drawn once and reused;
    a drop-shadow filter that traced the deckle was re-rendered every time the desk light moved. */
@@ -368,7 +440,9 @@ button:disabled { cursor: default; }
   transform: rotateX(-105deg);
   opacity: 0;
   pointer-events: none;
-  transition: transform 0.6s var(--ease-out), opacity 0.3s;
+  /* A card that was open to its full length goes back to card size at once and fades fast:
+     animating the height (interpolate-size) left the long card showing under the next, shorter one. */
+  transition: transform 0.6s var(--ease-out), opacity 0.14s linear, height 0s;
 }
 
 /* cotton card stock: shared by faces and tabs. The grain sits on its own layer,
@@ -399,6 +473,7 @@ button:disabled { cursor: default; }
   position: absolute;
   left: var(--tab-x, 6%);
   /* torn like the card, with its own pen outline (TabEdge) */
+  -webkit-mask: url('/deckle-tab.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle-tab.svg') 0 0 / 100% 100% no-repeat;
 }
 .tab-edge {
@@ -443,6 +518,7 @@ button:disabled { cursor: default; }
   flex-direction: column;
   padding: 1.45rem 2.2rem 1.25rem;
   /* deckled cotton edge */
+  -webkit-mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
 }
 
@@ -536,6 +612,7 @@ button:disabled { cursor: default; }
 .card-col {
   min-height: 0;
   overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.1rem), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 1.1rem), transparent);
 }
 .card-col-title {
@@ -575,7 +652,7 @@ button:disabled { cursor: default; }
 
 .is-front .card-face { height: auto; padding-bottom: 2.75rem; } /* frame insets scale with height */
 .is-front .card-columns { flex: none; grid-template-rows: auto; }
-.is-front .card-col { overflow: visible; mask-image: none; }
+.is-front .card-col { overflow: visible; -webkit-mask-image: none; mask-image: none; }
 .is-front .card-steps li { display: block; overflow: visible; }
 
 /* divider card */
@@ -622,7 +699,16 @@ button:disabled { cursor: default; }
 }
 .circled-count > span { translate: 0 0.12em; }
 
+.index-card.is-blank { cursor: pointer; }
 .index-card.is-blank .card-face { justify-content: center; align-items: center; }
+.blank-hint {
+  margin: 0;
+  font-family: var(--script);
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+  transition: color 0.2s;
+}
+.index-card.is-blank:hover .blank-hint { color: var(--enamel-deep); }
 .blank-note {
   margin: 0;
   padding: 1.5rem;
@@ -778,12 +864,27 @@ button:disabled { cursor: default; }
   max-width: 26rem;
   margin: 0 0 1rem;
   padding: 0.5rem 0.8rem;
-  background: #fcefb4;
-  font-size: 0.85rem;
+  background: var(--paper);
+  font-family: var(--script);
+  font-size: 1.05rem;
   font-weight: 400;
-  line-height: 1.35;
-  rotate: 1deg;
-  box-shadow: 0 2px 6px rgb(60 50 20 / 0.18);
+  line-height: 1.4;
+  color: var(--enamel-deep);
+  rotate: -1deg;
+  box-shadow: 0 1px 1px rgb(60 50 20 / 0.2), 0 4px 10px rgb(60 50 20 / 0.12);
+  position: relative;
+}
+.letter-notice::before { /* a strip of masking tape holding the note */
+  content: '';
+  position: absolute;
+  top: -0.55rem;
+  left: 50%;
+  width: 3.6rem;
+  height: 1.1rem;
+  translate: -50% 0;
+  rotate: 2deg;
+  background: rgb(220 193 150 / 0.7);
+  clip-path: polygon(0 8%, 6% 0, 12% 10%, 100% 0, 94% 50%, 100% 92%, 90% 100%, 82% 88%, 0 100%, 5% 50%);
 }
 
 .review { display: block; margin: 0.35rem 0 0.2rem; }
@@ -850,7 +951,22 @@ button:disabled { cursor: default; }
 .link-fields .ink-input { flex: 1; font-size: 1rem; font-weight: 300; }
 .link-fields { flex-direction: column; margin-top: 1.2rem; }
 .link-fields label { flex: none; }
-.ink-select { cursor: pointer; padding-right: 0.4rem; }
+/* drop-downs are drawn (see InkSelect): the choice on a dashed line, a cotton card of options */
+.ink-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding-right: 0.2rem;
+  text-align: left;
+  cursor: pointer;
+}
+.ink-select .pen-icon { flex: none; width: 1rem; height: 1rem; rotate: 180deg; color: var(--ink-soft); transition: rotate 0.25s var(--ease-out); }
+.ink-select[aria-expanded='true'] .pen-icon { rotate: 0deg; }
+.ink-select-pop { position: fixed; z-index: 45; rotate: -0.8deg; }
+.ink-select-pop .pop-card { padding: 0.7rem 1.3rem 0.8rem; }
+.ink-select-pop .pop-scroll { max-height: min(18rem, 55vh); }
+.ink-option { width: 100%; border: none; background: none; text-align: left; color: var(--ink); white-space: nowrap; }
 
 .open-columns {
   display: grid;
@@ -898,6 +1014,7 @@ button:disabled { cursor: default; }
   z-index: 0;
   aspect-ratio: 1000 / 330;
   background: #b18c5f;
+  -webkit-mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
   animation: fade-in 0.5s var(--ease-out) both;
 }
@@ -915,6 +1032,7 @@ button:disabled { cursor: default; }
   position: absolute;
   inset: 0;
   background: url('/cotton-4.webp') 0 0 / 256px 256px, var(--kraft);
+  -webkit-mask: url('/holder-mask.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/holder-mask.svg') 0 0 / 100% 100% no-repeat;
 }
 .holder-outline {
@@ -958,12 +1076,41 @@ button:disabled { cursor: default; }
   height: 3.3rem;
   padding: 0.55rem 0 0;
   border: none;
-  border-radius: 8px 8px 6px 6px;
-  background: var(--kraft-light);
+  background: none;
   color: var(--ink);
-  box-shadow: 0 1px 1px rgb(70 50 30 / 0.25), 0 3px 8px rgb(70 50 30 / 0.15);
-  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out), background 0.2s;
+  filter: drop-shadow(0 1px 1px rgb(70 50 30 / 0.3)) drop-shadow(0 3px 6px rgb(70 50 30 / 0.16));
+  transition: transform 0.25s var(--ease-out), filter 0.25s var(--ease-out);
 }
+/* Tags are cut from the same torn cotton stock as the cards. The paper is its own clipped layer
+   (a ragged edge measured in pixels, so it stays rough on a small tag, plus grain) so the hover label,
+   which sits outside the tag, isn't clipped; the shadow follows the torn edge. */
+:root {
+  --tag-clip-1: polygon(0.0% 1.1px, 7.1% 1.5px, 14.3% 2.2px, 21.4% 1.4px, 28.6% 3.0px, 35.7% 3.2px, 42.9% 3.2px, 50.0% 3.2px, 57.1% 3.2px, 64.3% 4.7px, 71.4% 3.2px, 78.6% 1.7px, 85.7% 1.6px, 92.9% 2.8px, calc(100% - 2.6px) 0.0%, calc(100% - 2.5px) 8.3%, calc(100% - 4.4px) 16.7%, calc(100% - 3.2px) 25.0%, calc(100% - 3.0px) 33.3%, calc(100% - 2.4px) 41.7%, calc(100% - 2.0px) 50.0%, calc(100% - 2.3px) 58.3%, calc(100% - 3.2px) 66.7%, calc(100% - 3.2px) 75.0%, calc(100% - 3.2px) 83.3%, calc(100% - 2.1px) 91.7%, 100.0% calc(100% - 3.2px), 92.9% calc(100% - 3.2px), 85.7% calc(100% - 3.2px), 78.6% calc(100% - 4.5px), 71.4% calc(100% - 4.7px), 64.3% calc(100% - 3.2px), 57.1% calc(100% - 2.5px), 50.0% calc(100% - 4.7px), 42.9% calc(100% - 3.2px), 35.7% calc(100% - 2.7px), 28.6% calc(100% - 3.2px), 21.4% calc(100% - 3.2px), 14.3% calc(100% - 1.8px), 7.1% calc(100% - 0.3px), 1.8px 100.0%, 0.4px 91.7%, 0.2px 83.3%, 1.5px 75.0%, 1.3px 66.7%, 1.8px 58.3%, 2.0px 50.0%, 3.2px 41.7%, 3.0px 33.3%, 2.1px 25.0%, 3.2px 16.7%, 4.7px 8.3%);
+  --tag-clip-2: polygon(0.0% 1.7px, 7.1% 0.8px, 14.3% 1.8px, 21.4% 0.7px, 28.6% 0.2px, 35.7% 1.6px, 42.9% 0.2px, 50.0% 0.5px, 57.1% 0.2px, 64.3% 0.2px, 71.4% 0.7px, 78.6% 1.6px, 85.7% 3.1px, 92.9% 2.8px, calc(100% - 2.4px) 0.0%, calc(100% - 3.2px) 8.3%, calc(100% - 3.2px) 16.7%, calc(100% - 1.8px) 25.0%, calc(100% - 2.9px) 33.3%, calc(100% - 2.0px) 41.7%, calc(100% - 0.5px) 50.0%, calc(100% - 1.6px) 58.3%, calc(100% - 1.7px) 66.7%, calc(100% - 0.5px) 75.0%, calc(100% - 0.2px) 83.3%, calc(100% - 0.2px) 91.7%, 100.0% calc(100% - 0.2px), 92.9% calc(100% - 1.6px), 85.7% calc(100% - 1.4px), 78.6% calc(100% - 0.6px), 71.4% calc(100% - 1.7px), 64.3% calc(100% - 0.7px), 57.1% calc(100% - 1.7px), 50.0% calc(100% - 1.6px), 42.9% calc(100% - 3.3px), 35.7% calc(100% - 2.7px), 28.6% calc(100% - 1.4px), 21.4% calc(100% - 1.7px), 14.3% calc(100% - 2.8px), 7.1% calc(100% - 2.0px), 3.0px 100.0%, 1.6px 91.7%, 1.5px 83.3%, 1.2px 75.0%, 1.4px 66.7%, 0.3px 58.3%, 1.8px 50.0%, 1.9px 41.7%, 1.6px 33.3%, 1.5px 25.0%, 1.4px 16.7%, 1.2px 8.3%);
+  --tag-clip-3: polygon(0.0% 2.8px, 7.1% 2.1px, 14.3% 2.8px, 21.4% 3.0px, 28.6% 3.2px, 35.7% 3.2px, 42.9% 3.2px, 50.0% 2.9px, 57.1% 1.5px, 64.3% 2.7px, 71.4% 3.2px, 78.6% 3.2px, 85.7% 3.2px, 92.9% 3.2px, calc(100% - 1.9px) 0.0%, calc(100% - 3.2px) 8.3%, calc(100% - 3.2px) 16.7%, calc(100% - 4.6px) 25.0%, calc(100% - 3.2px) 33.3%, calc(100% - 2.7px) 41.7%, calc(100% - 2.3px) 50.0%, calc(100% - 3.2px) 58.3%, calc(100% - 3.2px) 66.7%, calc(100% - 3.2px) 75.0%, calc(100% - 2.5px) 83.3%, calc(100% - 1.5px) 91.7%, 100.0% calc(100% - 2.1px), 92.9% calc(100% - 2.6px), 85.7% calc(100% - 2.0px), 78.6% calc(100% - 3.2px), 71.4% calc(100% - 4.4px), 64.3% calc(100% - 3.2px), 57.1% calc(100% - 2.5px), 50.0% calc(100% - 3.2px), 42.9% calc(100% - 1.8px), 35.7% calc(100% - 4.7px), 28.6% calc(100% - 3.2px), 21.4% calc(100% - 3.2px), 14.3% calc(100% - 3.2px), 7.1% calc(100% - 2.2px), 0.2px 100.0%, 1.3px 91.7%, 2.3px 83.3%, 4.7px 75.0%, 3.2px 66.7%, 3.2px 58.3%, 4.0px 50.0%, 3.2px 41.7%, 3.2px 33.3%, 2.1px 25.0%, 2.8px 16.7%, 2.5px 8.3%);
+}
+.action-tag,
+.surprise-tag { isolation: isolate; }
+.tag-paper {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--tag-bg, var(--kraft-light));
+  clip-path: var(--tag-clip, var(--tag-clip-1));
+}
+.tag-paper::before {
+  content: '';
+  position: absolute;
+  inset: -60%;
+  background: var(--tag-grain, url('/cotton-2.webp')) 0 0 / 256px 256px;
+  rotate: var(--tag-grain-rot, 20deg);
+  opacity: var(--tag-grain-opacity, 1);
+}
+.action-tag:nth-child(2) { --tag-clip: var(--tag-clip-2); --tag-grain: url('/cotton-4.webp'); --tag-grain-rot: 140deg; }
+.action-tag:nth-child(3) { --tag-clip: var(--tag-clip-3); --tag-grain: url('/cotton-1.webp'); --tag-grain-rot: 250deg; }
+.action-tag.is-primary,
+.action-tag.is-danger { --tag-grain-opacity: 0.5; }
 .action-tag::before { /* punched hole at the top of the tag */
   content: '';
   position: absolute;
@@ -979,15 +1126,33 @@ button:disabled { cursor: default; }
 .action-tag:hover:not(:disabled),
 .action-tag:focus-visible {
   transform: translateY(-1px) rotate(-3deg);
-  box-shadow: 0 2px 2px rgb(70 50 30 / 0.22), 0 6px 14px rgb(70 50 30 / 0.18);
+  filter: drop-shadow(0 2px 2px rgb(70 50 30 / 0.24)) drop-shadow(0 6px 10px rgb(70 50 30 / 0.2));
 }
 .action-tag:disabled { opacity: 0.55; }
-.action-tag.is-primary { background: var(--enamel); color: #fff4ea; }
-.action-tag.is-primary:hover:not(:disabled) { background: #c23a44; }
-.action-tag.is-danger { background: var(--enamel-deep); color: #fff4ea; }
-.action-tag.is-quiet { background: rgb(255 254 250 / 0.55); box-shadow: none; color: var(--ink-soft); }
+.action-tag.is-primary { --tag-bg: var(--enamel); color: #fff4ea; }
+.action-tag.is-primary:hover:not(:disabled) { --tag-bg: #c23a44; }
+.action-tag.is-danger { --tag-bg: var(--enamel-deep); color: #fff4ea; }
+.action-tag.is-quiet { --tag-bg: rgb(255 254 250 / 0.6); filter: none; color: var(--ink-soft); }
 .action-tag.is-quiet::before { display: none; }
-.action-tag.is-quiet:hover { background: rgb(255 254 250 / 0.85); }
+.action-tag.is-quiet:hover { --tag-bg: rgb(255 254 250 / 0.9); }
+
+.action-tag.is-written {
+  width: auto;
+  min-width: 7.2rem;
+  height: auto;
+  grid-auto-flow: row;
+  gap: 0.15rem;
+  padding: 1.05rem 1rem 0.55rem;
+  justify-items: center;
+}
+.tag-written {
+  font-family: var(--script);
+  font-size: 1.1rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.action-tag.is-written:nth-child(even) { rotate: 1.5deg; }
+.action-tag.is-written:nth-child(odd) { rotate: -1.5deg; }
 
 .pen-icon {
   width: 1.45rem;
@@ -1117,6 +1282,13 @@ button:disabled { cursor: default; }
   }
 }
 
+/* "casual script" recipe writing (jar setting): the same places, in Caveat (it runs larger than Zeyada) */
+[data-recipe-font='caveat'] .card-columns { font-family: 'Caveat', cursive; font-size: 1.1rem; line-height: 1.15; }
+[data-recipe-font='caveat'] .open-columns,
+[data-recipe-font='caveat'] .hand-area,
+[data-recipe-font='caveat'] .review-text,
+[data-recipe-font='caveat'] .review-area { font-family: 'Caveat', cursive; font-size: 1.3rem; line-height: 1.2; }
+
 /* "printed" recipe writing (jar setting): ingredients, directions and notes in Mukta Malar */
 [data-recipe-font='print'] .card-columns { font-family: var(--sans); font-size: 0.8rem; line-height: 1.3; }
 [data-recipe-font='print'] .open-columns,
@@ -1143,6 +1315,7 @@ button:disabled { cursor: default; }
   border: none;
   background: var(--card);
   color: var(--ink);
+  -webkit-mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
 }
 .pop-card::before {
@@ -1239,10 +1412,23 @@ button:disabled { cursor: default; }
   right: 0.2rem;
   bottom: calc(100% + 0.5rem);
   rotate: -2deg;
-  width: 11.5rem;
+  width: 13.5rem;
+}
+/* tall settings card on a short window: scroll inside it rather than slide under the title */
+.jar-pop .sort-option { padding: 0; line-height: 1.5; }
+.jar-pop .setting-group { margin-top: 0.5rem; padding-top: 0.35rem; }
+/* The scroll box clips whatever sticks out of it (the pen circles, the hover nudge), so it reaches
+   a little past the text on every side; the negative margins keep the layout as it was. */
+.pop-scroll {
+  max-height: calc(100vh - 12rem);
+  margin: -0.5rem -1rem;
+  padding: 0.5rem 1rem;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 .setting-group { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed rgb(61 60 64 / 0.25); }
 .sort-label.writing-print { font-family: var(--sans); font-size: 0.95rem; }
+.sort-label.writing-caveat { font-family: 'Caveat', cursive; font-size: 1.3rem; }
 .sort-label.writing-hand { font-family: var(--hand); font-size: 1.35rem; }
 .sort-option {
   display: block;
@@ -1252,8 +1438,89 @@ button:disabled { cursor: default; }
   line-height: 1.75;
   cursor: pointer;
 }
-.export-option { width: 100%; padding: 0.12rem 0; border: none; background: none; text-align: left; color: inherit; }
-.export-option small { font-family: var(--sans); font-size: 0.75rem; color: var(--ink-soft); }
+.file-option {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  color: inherit;
+  line-height: 1.55;
+}
+.file-option .sort-label { white-space: nowrap; }
+.format-choice { display: flex; align-items: baseline; gap: 0.6rem; margin: 0.1rem 0 0.15rem 1.6rem; font-family: var(--script); font-size: 0.95rem; color: var(--ink-soft); }
+.format-choice .ink-select { min-width: 5.5rem; font-size: 0.9rem; }
+.file-option .pen-icon { flex: none; width: 1.15rem; height: 1.15rem; color: var(--ink-soft); transition: translate 0.2s var(--ease-out), color 0.2s; }
+.file-option:hover .pen-icon,
+.file-option:focus-visible .pen-icon { color: var(--enamel-deep); translate: 0 -0.1rem; }
+.file-option small { font-family: var(--sans); font-size: 0.75rem; color: var(--ink-soft); }
+.file-note {
+  margin: 0.4rem 0 0;
+  font-family: var(--script);
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--enamel-deep);
+}
+
+/* "? how this works": a labelled row at the top of the settings card, and the note it opens */
+.help-button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin: 0 0 0.5rem;
+  padding: 0.1rem 0;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: var(--script);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.help-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2.4rem;
+  padding-top: 0.2rem; /* sits the ? a little low in the taller circle */
+  font-size: 1.15rem;
+  transition: transform 0.2s var(--ease-out);
+}
+.help-mark .pen-circle { inset: 0; width: 100%; height: 100%; }
+.help-button:hover .help-mark,
+.help-button:focus-visible .help-mark { transform: rotate(-8deg) scale(1.1); }
+
+/* cursor glow swatches */
+.glow-swatches { display: flex; flex-wrap: wrap; gap: 0.4rem 0.4rem; padding: 0.2rem 0.15rem 0; }
+.glow-swatch { cursor: pointer; }
+.glow-dot {
+  position: relative;
+  display: block;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgb(61 60 64 / 0.18);
+  transition: transform 0.2s var(--ease-out);
+}
+.glow-dot .pen-circle { inset: -0.2rem; width: calc(100% + 0.4rem); height: calc(100% + 0.4rem); }
+.glow-swatch:hover .glow-dot,
+.glow-swatch:has(:focus-visible) .glow-dot { transform: scale(1.15) rotate(-6deg); }
+.jar-pop.is-help { width: 19rem; }
+.help-note { padding-top: 0.2rem; font-size: 0.85rem; line-height: 1.45; }
+.help-note .pop-title + ul,
+.help-note .pop-title + p { margin-top: 0; }
+.help-note ul { margin: 0 0 0.9rem; padding: 0; list-style: none; }
+.help-note li { margin: 0 0 0.35rem; padding-left: 0.9rem; position: relative; }
+.help-note li::before { content: '–'; position: absolute; left: 0; color: var(--ink-soft); }
+.help-note b { font-weight: 500; }
+.help-note p { margin: 0; font-family: var(--hand); font-size: 1.25rem; line-height: 1.3; }
+.help-note kbd { padding: 0 0.3em; border: 1px solid var(--pencil); border-radius: 3px; font: inherit; font-size: 0.8rem; }
 .sort-label { position: relative; display: inline-block; padding: 0 0.15em; transition: transform 0.2s var(--ease-out); }
 .sort-option:hover .sort-label,
 .sort-option:has(:focus-visible) .sort-label { transform: translateX(0.2rem); }

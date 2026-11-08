@@ -19,6 +19,8 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   list: () => call<Recipe[]>('/api/recipes'),
   create: (draft: Draft) => call<Recipe>('/api/recipes', { method: 'POST', body: JSON.stringify(draft) }),
+  importRecipes: (payload: unknown) =>
+    call<{ added: Recipe[]; skipped: number; invalid: number }>('/api/recipes/import', { method: 'POST', body: JSON.stringify(payload) }),
   update: (id: string, patch: Draft) =>
     call<Recipe>(`/api/recipes/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
   remove: (id: string) => call<void>(`/api/recipes/${id}`, { method: 'DELETE' }),
