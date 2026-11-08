@@ -83,6 +83,7 @@ export function JamJar({
       {open && (
         <div className={`pop jar-pop ${help ? 'is-help' : ''}`}>
           <div className="pop-card sort-card">
+            <div className="pop-scroll">
             <button
               type="button"
               className="help-button"
@@ -215,6 +216,7 @@ export function JamJar({
               {importNote && <p className="file-note" role="status">{importNote}</p>}
             </div>
             </>)}
+            </div>
           </div>
         </div>
       )}

@@ -82,6 +82,7 @@ export function InkSelect({
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="pop-card" role="listbox" aria-label={label}>
+            <div className="pop-scroll">
             {options.map((o, i) => (
               <button
                 key={o.value}
@@ -97,6 +98,7 @@ export function InkSelect({
                 </span>
               </button>
             ))}
+            </div>
           </div>
         </div>,
         document.body,

@@ -35,8 +35,8 @@ export function playFlip() {
       src.start(at, Math.random() * 0.1, length + 0.02);
     };
     const t = ctx.currentTime;
-    flick(t, 0.32, 4200, 1500, 0.09); // the card lifting
-    flick(t + 0.055, 0.16, 2600, 1100, 0.07); // and settling
+    flick(t, 0.2, 4200, 1500, 0.09); // the card lifting
+    flick(t + 0.055, 0.1, 2600, 1100, 0.07); // and settling
   } catch {
     /* no audio available: flipping stays silent */
   }
