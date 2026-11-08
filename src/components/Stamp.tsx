@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { scallopPath } from '../scallop';
 import { stampGrainUrl } from '../stampGrain';
 import type { StampFinish } from '../types';
+import { usePhotoSrc } from '../usePhoto';
 
 /**
  * A postage stamp cut from a recipe's photo: scalloped paper edge, the picture inset with a pen
@@ -23,9 +24,10 @@ export const STAMP_PEN =
 export const STAMP_CANCEL = 'M38 76c6-3 11 3 17 0s9 1 14-1 M36 69.5c6-3 11 3 17 0s9 1 16-1.5 M40 82.5c5-2.5 10 2.5 15 0s9 .5 14-1.5';
 
 export function Stamp({
-  image, fill, fruit, label, finish = 'plain', className = '',
-}: { image?: string; fill: string; fruit: string; label: string; finish?: StampFinish; className?: string }) {
+  image: link, photo, fill, fruit, label, finish = 'plain', className = '',
+}: { image?: string; photo?: string; fill: string; fruit: string; label: string; finish?: StampFinish; className?: string }) {
   const id = useId();
+  const image = usePhotoSrc({ photo, image: link }, 'thumb');
   const [broken, setBroken] = useState(false);
   const showImage = !!image && !broken;
   const inner = STAMP_W - STAMP_INSET * 2;

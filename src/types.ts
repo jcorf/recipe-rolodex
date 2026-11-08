@@ -16,7 +16,10 @@ export interface Recipe {
   category: Category | '';
   sourceUrl: string;
   sourceName: string;
+  /** A photo from the web, by its link. */
   image: string;
+  /** A photo added from this device, kept by the store (its id). Shown instead of `image`. */
+  photo?: string;
   cuisine: string;
   servings: string;
   totalTime: string;

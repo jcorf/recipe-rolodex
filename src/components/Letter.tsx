@@ -10,6 +10,7 @@ import { InkSelect } from './InkSelect';
 import { CookedPop } from './CookedPop';
 import type { StampLook } from './MonthGrid';
 import { useDismiss } from '../useDismiss';
+import { addPhoto, usePhotoSrc } from '../usePhoto';
 
 /**
  * The open recipe: the rolodex card pulled out of the box and enlarged, standing in a
@@ -41,6 +42,8 @@ interface Form {
   servings: string;
   totalTime: string;
   image: string;
+  /** A photo added from this device (its id in the store). */
+  photo: string;
   sourceUrl: string;
   ingredients: string;
   steps: string;
@@ -53,6 +56,7 @@ const toForm = (r: Draft): Form => ({
   servings: r.servings ?? '',
   totalTime: r.totalTime ?? '',
   image: r.image ?? '',
+  photo: r.photo ?? '',
   sourceUrl: r.sourceUrl ?? '',
   ingredients: (r.ingredients ?? []).join('\n'),
   steps: (r.steps ?? []).join('\n'),
@@ -88,6 +92,8 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
   const overlayRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [addingPhoto, setAddingPhoto] = useState(false);
   const actionsRef = useRef<HTMLElement>(null);
   const [cookedOpen, setCookedOpen] = useState(false);
   const cookedRef = useRef<HTMLDivElement>(null);
@@ -146,6 +152,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
         servings: form.servings,
         totalTime: form.totalTime,
         image: form.image,
+        photo: form.photo,
         sourceUrl: form.sourceUrl,
         ingredients: lines(form.ingredients),
         steps: lines(form.steps),
@@ -190,6 +197,22 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
 
   const shown = editing ? { ...recipe, ...form, ingredients: lines(form.ingredients), steps: lines(form.steps) } : recipe;
   const source = sourceLabel(shown);
+  const photoSrc = usePhotoSrc(shown, 'thumb');
+
+  // a photo from this device: shrunk and kept straight away; the card points to it once it's saved
+  const pickPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setAddingPhoto(true);
+    setError('');
+    try {
+      const id = await addPhoto(file);
+      setForm((f) => ({ ...f, photo: id }));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setAddingPhoto(false);
+    }
+  };
   const meta = [shown.totalTime, servesLabel(shown.servings), shown.cuisine].filter(Boolean);
 
   return (
@@ -269,15 +292,32 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
                 )}
               </div>
 
-              {(shown.image || editing) && (
-                <figure className={`mini-polaroid ${shown.image ? '' : 'is-empty'}`}>
+              {(photoSrc || editing) && (
+                <figure className={`mini-polaroid ${photoSrc ? '' : 'is-empty'}`}>
                   <GinghamBow className="mini-polaroid-bow" />
-                  {shown.image ? (
-                    <img src={shown.image} alt={`Photo of ${shown.title || 'this recipe'}`} />
+                  {photoSrc ? (
+                    <img src={photoSrc} alt={`Photo of ${shown.title || 'this recipe'}`} />
                   ) : (
-                    <button type="button" className="mini-polaroid-add" onClick={() => photoRef.current?.focus()}>
-                      add a photo
+                    <button type="button" className="mini-polaroid-add" onClick={() => fileRef.current?.click()} disabled={addingPhoto}>
+                      {addingPhoto ? 'developing…' : 'add a photo'}
                     </button>
+                  )}
+                  {editing && photoSrc && (
+                    <figcaption className="mini-polaroid-actions">
+                      <button type="button" onClick={() => fileRef.current?.click()} disabled={addingPhoto}>
+                        {addingPhoto ? 'developing…' : 'change'}
+                      </button>
+                      {form.photo && <button type="button" onClick={() => setForm((f) => ({ ...f, photo: '' }))}>remove</button>}
+                    </figcaption>
+                  )}
+                  {editing && (
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }}
+                    />
                   )}
                 </figure>
               )}

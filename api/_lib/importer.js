@@ -2,9 +2,10 @@
 // sites (NYT Cooking, Bon Appétit, Serious Eats, blogs on WP Recipe Maker…) embed.
 // Falls back to Open Graph title/image so the card can still be finished by hand.
 
-// Identify honestly. Sites that refuse automated requests get the
-// "fill it in by hand" fallback rather than a workaround.
-const UA = 'RecipeRolodex/0.1 (personal, self-hosted recipe importer)';
+import { safeFetch } from './safeFetch.js';
+
+/** Recipe pages are rarely over 2 MB; this leaves room without reading anything huge. */
+const MAX_PAGE_BYTES = 5 * 1024 * 1024;
 
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', frac12: '½', frac14: '¼', frac34: '¾', deg: '°' };
 
@@ -98,14 +99,10 @@ export async function importRecipe(rawUrl) {
 
   let html;
   try {
-    const res = await fetch(url, {
-      headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml' },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(12000),
-    });
+    const { res, bytes } = await safeFetch(url, { headers: { accept: 'text/html,application/xhtml+xml' }, maxBytes: MAX_PAGE_BYTES });
     if (res.status === 401 || res.status === 403) throw new Error('this site doesn’t allow apps to read its pages');
     if (!res.ok) throw new Error(`the site answered ${res.status}`);
-    html = await res.text();
+    html = new TextDecoder().decode(bytes);
   } catch (err) {
     throw new Error(`Couldn’t open that page (${err.message}). Check the link, or write the card by hand.`);
   }

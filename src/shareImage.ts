@@ -8,6 +8,7 @@ import { abbreviateUnits, servesLabel, splitAmount, stepText } from './recipeTex
 import { scallopPath } from './scallop';
 import { STAMP_CANCEL, STAMP_H, STAMP_INSET, STAMP_PAPER, STAMP_PEN, STAMP_VEIL, STAMP_W } from './components/Stamp';
 import type { Recipe, Settings } from './types';
+import { keptPhotoUrl } from './usePhoto';
 
 /**
  * Pictures of a recipe card, and of a month of the calendar, drawn straight onto a canvas in the
@@ -54,6 +55,13 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
 
 /** A photo's address as the canvas can read it: other sites' photos come back through the app. */
 const photoSrc = (url: string) => (/^https?:/i.test(url) ? `/api/image?url=${encodeURIComponent(url)}` : url);
+
+/** A card's photo for the canvas: one kept on this device (same-origin, no trip out), else its web link. */
+async function recipePhoto(r: Recipe, size: 'main' | 'thumb') {
+  const kept = await keptPhotoUrl(r, size);
+  if (kept) return loadImage(kept);
+  return r.image ? loadImage(photoSrc(r.image)) : null;
+}
 
 function newCanvas(w: number, h: number) {
   const canvas = document.createElement('canvas');
@@ -192,7 +200,7 @@ export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow, whit
   const lower = recipeFont !== 'print';
   const fix = (t: string) => (lower ? t.toLowerCase() : t);
   await ensureFonts([LABEL_FONT, hand]);
-  const photo = recipe.image ? await loadImage(photoSrc(recipe.image)) : null;
+  const photo = await recipePhoto(recipe, 'main');
 
   const CW = 620;
   const PAD = 46;
@@ -410,7 +418,7 @@ export async function renderMonthImage(year: number, month: number, recipes: Rec
   for (const r of recipes) for (const d of r.cooked ?? []) if (d.startsWith(prefix)) byDay.set(d, [...(byDay.get(d) ?? []), r]);
   const photos = new Map<string, HTMLImageElement | null>();
   await Promise.all([...new Set([...byDay.values()].flat())].map(async (r) => {
-    photos.set(r.id, r.image ? await loadImage(photoSrc(r.image)) : null);
+    photos.set(r.id, await recipePhoto(r, 'thumb'));
   }));
 
   const weeks = monthWeeks(year, month);

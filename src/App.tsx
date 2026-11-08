@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
 import { CATEGORIES, GLOWS, type Draft, type Recipe, type Settings } from './types';
 import { Rolodex, buildItems, type RolodexItem } from './components/Rolodex';
@@ -65,7 +65,11 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  const shown = useMemo(() => filterRecipes(recipes, query), [recipes, query]);
+  // The slip shows each letter at once; the rolodex catches up a moment later (it can be thousands of cards).
+  const searched = useDeferredValue(query);
+  /** The search the rolodex last started over for (see the layout effect below). */
+  const lastSearched = useRef(searched);
+  const shown = useMemo(() => filterRecipes(recipes, searched), [recipes, searched]);
 
   const sortBy = settings?.sortBy ?? 'category';
   const items = useMemo(() => buildItems(shown, sortBy), [shown, sortBy]);
@@ -85,6 +89,7 @@ export default function App() {
     const i = buildItems(list, sortBy).findIndex((item) => item.kind === 'recipe' && item.recipe.id === id);
     if (i !== -1) {
       setQuery('');
+      lastSearched.current = ''; // clearing the search here shouldn't send the rolodex back to the front
       setIndex(i);
     }
   };
@@ -123,9 +128,16 @@ export default function App() {
   /** Where a search starts: on its first recipe, not the divider above it. */
   const firstRecipe = (list: RolodexItem[]) => Math.max(0, list.findIndex((item) => item.kind === 'recipe'));
 
+  // A new search starts on its first recipe (once the rolodex has caught up with it).
+  useLayoutEffect(() => {
+    if (lastSearched.current === searched) return;
+    lastSearched.current = searched;
+    setIndex(searched.trim() ? firstRecipe(items) : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searched, items]);
+
   const find = (q: string) => {
     setQuery(q);
-    setIndex(q.trim() ? firstRecipe(buildItems(filterRecipes(recipes, q), sortBy)) : 0);
   };
 
   // "/" jumps to the find slip (unless you're already writing somewhere, or a card is open)
