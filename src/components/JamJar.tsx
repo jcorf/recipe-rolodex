@@ -39,8 +39,9 @@ function HelpNote() {
       </ul>
       <span className="pop-title">why I made it</span>
       <p>
-        i wanted to recreate a cozy, whimiscal way to share and keep the recipes that i've gathered, and to provide a
-        fun way to try one's i've been meaning to - xo, julie
+        so we can share and keep the recipes that we've gathered with more fun and whimsy, and to provide a
+        final nudge to try one's i've been meaning to. - xo,{' '}
+        <span style={{ textDecoration: 'underline', textDecorationColor: '#e6a2a2', textDecorationThickness: '1.5px', textUnderlineOffset: '5px' }}>from julie</span>
       </p>
     </div>
   );

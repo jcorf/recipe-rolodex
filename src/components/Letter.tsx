@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CATEGORIES, type Category, type Draft, type Recipe } from '../types';
 import { servesLabel, splitAmount, stepText } from '../recipeText';
 import { cardLook, InkFrame, InkRule } from './ink';
 import { HOLDER } from './inkPaths';
-import { PenIcon, type PenIconName } from './PenIcons';
+import { ActionTag, FORM_ID } from './ActionTag';
 import { GinghamBow, PatchHeart } from './Stickers';
 import { StarRating } from './StarRating';
 import { InkSelect } from './InkSelect';
+import { CookedPop } from './CookedPop';
+import type { StampLook } from './MonthGrid';
+import { useDismiss } from '../useDismiss';
 
 /**
  * The open recipe: the rolodex card pulled out of the box and enlarged, standing in a
@@ -26,6 +29,9 @@ interface Props {
   /** Saved cards only: save this card in the chosen export format. */
   onExport?: () => void;
   exportLabel?: string;
+  /** Saved cards only: how stamps look on the desk, and share this card as a picture. */
+  stampLook?: StampLook;
+  onShare?: () => void;
 }
 
 interface Form {
@@ -63,42 +69,10 @@ function sourceLabel(r: Draft) {
   }
 }
 
-const FORM_ID = 'open-card-form';
-
-/** One floating tag: a pen symbol, with its name shown on hover/focus and read out to screen readers. */
-function ActionTag({
-  icon, label, tone = 'kraft', type = 'button', onClick, disabled, autoFocus, written,
-}: {
-  icon: PenIconName;
-  label: string;
-  tone?: 'kraft' | 'primary' | 'danger' | 'quiet';
-  type?: 'button' | 'submit';
-  onClick?: () => void;
-  disabled?: boolean;
-  autoFocus?: boolean;
-  /** Write the name on the tag in pen instead of showing it on hover. */
-  written?: boolean;
-}) {
-  return (
-    <button
-      type={type}
-      form={type === 'submit' ? FORM_ID : undefined}
-      className={`action-tag is-${tone} ${written ? 'is-written' : ''}`}
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      autoFocus={autoFocus}
-    >
-      <span className="tag-paper" aria-hidden="true" />
-      <PenIcon name={icon} />
-      <span className={written ? 'tag-written' : 'action-label'} aria-hidden="true">{label}</span>
-    </button>
-  );
-}
 
 const isLink = (text: string) => /^https?:\/\/\S+$/i.test(text.trim());
 
-export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onClose, onExport, exportLabel = 'export card' }: Props) {
+export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onClose, onExport, exportLabel = 'export card', stampLook, onShare }: Props) {
   const [editing, setEditing] = useState(isNew);
   const [form, setForm] = useState<Form>(() => toForm(recipe));
   const [rating, setRating] = useState(recipe.rating ?? 0);
@@ -114,6 +88,12 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
   const overlayRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
+  const actionsRef = useRef<HTMLElement>(null);
+  const [cookedOpen, setCookedOpen] = useState(false);
+  const cookedRef = useRef<HTMLDivElement>(null);
+  const closeCooked = useCallback(() => setCookedOpen(false), []);
+  const cookedRefs = useMemo(() => [actionsRef, cookedRef], []);
+  useDismiss(cookedOpen, cookedRefs, closeCooked);
   const look = cardLook(recipe.id ?? 'new-card');
 
   useEffect(() => {
@@ -374,15 +354,20 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
     </div>
 
       {/* outside the overlay: its backdrop blur would otherwise make "fixed" scroll with the card */}
-      <nav className="card-actions" aria-label="Card actions">
+      <nav ref={actionsRef} className="card-actions" aria-label="Card actions">
         {!editing && !confirmTear && (
           <>
-            <ActionTag icon="edit" label="edit card" onClick={() => setEditing(true)} />
-            {!isNew && onExport && <ActionTag icon="export" label={exportLabel} onClick={onExport} />}
+            <ActionTag icon="edit" label="edit card" onClick={() => { closeCooked(); setEditing(true); }} />
+            {!isNew && stampLook && <ActionTag icon="stamp" label="I cooked this" onClick={() => setCookedOpen((o) => !o)} />}
+            {!isNew && onExport && <ActionTag icon="export" label={exportLabel} onClick={() => { closeCooked(); onExport(); }} />}
+            {!isNew && onShare && <ActionTag icon="share" label="share card" onClick={() => { closeCooked(); onShare(); }} />}
             {!isNew && (
               <ActionTag icon="tear" label="tear up card" tone="quiet" onClick={() => setConfirmTear(true)} />
             )}
           </>
+        )}
+        {cookedOpen && !editing && !confirmTear && !isNew && stampLook && (
+          <CookedPop innerRef={cookedRef} recipe={recipe as Recipe} look={stampLook} onChange={(cooked) => run(() => onSave({ cooked }))} />
         )}
         {editing && !confirmTear && (
           <>

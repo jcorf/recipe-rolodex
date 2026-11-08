@@ -160,7 +160,7 @@ A warm off-white desk, cotton-white cards, pastel divider stock and dark grey pe
 ## Typography
 
 **Display / Naming Font:** La Belle Aurore (cursive)
-**Recipe Hand:** Zeyada (cursive), always lowercase
+**Recipe Hand:** Zeyada (cursive), always lowercase. Settings can switch it to Caveat ("casual script", a larger, rounder hand) or to printed Mukta Malar
 **Interface Font:** Mukta Malar (system-ui fallback), light 300 for text, 500 for button labels
 **Ornament Font:** KR Fruitsy (Kat's Fun Fonts, freeware for non-commercial use), a fruit dingbat face, self-hosted at `public/fonts/kr-fruitsy.ttf`
 
@@ -246,6 +246,17 @@ Drawn shapes come from a pen: the border wobbles along each side and its corners
 - **Closing:** click anywhere off the card (or press Esc) to tuck it back; while editing, outside clicks do nothing so changes can't be lost.
 - **Actions:** kraft tags with a punched hole and a pen-drawn symbol: pencil (edit), check (save, the one red tag), cross (never mind), torn page (tear up, quiet). Each names itself on hover or focus. Tearing up asks once ("tear it up?" with check / cross) before deleting.
 
+### Cooked Stamps & the Calendar (signature)
+- **Marking a dish cooked:** the open card's stamp tag ("I cooked this") opens a small cotton month over the page. Clicking a day stamps this recipe on it; clicking a stamped day lifts the stamp off. Dates are stored on the recipe as `cooked` (YYYY-MM-DD, in the owner's own time zone, never UTC). Surprise me counts a recipe with no stars *and* no cooked days as new.
+- **The stamp:** a postage stamp cut from the recipe's photo: a scalloped paper edge (a row of half-circle bites, `scallopPath`), the photo inset with an uneven pen line, and three faint wavy cancel lines across a corner. With no photo it is the meal's pastel with its fruit, so every cooked day still gets one. Stamps tilt a few degrees each and cast the soft paper shadow.
+- **The spoon:** a kraft tag with a pen-drawn spoon, laid at the desk's top-right corner, opens the calendar (its label, "what I cooked", opens to the left).
+- **The calendar page:** the open card's cotton sheet at the same width: month name in La Belle Aurore with the year in the recipe hand, "n dishes cooked" beneath, a drawn rule, weekday initials, then hand-numbered days on dashed pencil rows. Today's number is circled in pen. One month at a time: pen chevrons or ← → flip it. Two dishes on a day overlap as two stamps; more show as "+n". Clicking a stamp opens that recipe.
+
+### Shared Pictures
+- **What:** a recipe card or a calendar month drawn onto a canvas in the same cotton, grain, torn edge, pen border and handwriting as the page, on the desk with a soft shadow and a small "from my recipe roladex" signature, at 2× size. Photos from other sites come through the app's own `/api/image` so the picture can be saved.
+- **Share sheet:** the picture over the blurred desk with kraft tags to hand it on: share (only where the browser offers a share sheet), copy picture, save picture (.png), close. A taped note says "copied" or "saved". Escape closes the sheet, not the card under it.
+- **Link previews** need a public address; while the app runs only on the owner's computer, the picture is what gets shared.
+
 ### Pop-up Cards
 - **Character:** small cotton cards (deckled, grain, soft drop shadow) that open beside what you clicked; a click elsewhere or Escape closes them.
 - **Choice marking:** the current option is circled in pen (`PenCircle`), never highlighted with a fill or colour.
@@ -255,7 +266,7 @@ Drawn shapes come from a pen: the border wobbles along each side and its corners
 - **Character:** a small watercolour jar of strawberry jam with a gingham cloth lid, set down at the desk's bottom-right corner; it is the way into settings.
 - **Rest:** 4.75rem wide, tilted −9°, at 40% opacity so it stays out of the way.
 - **Hover / Focus:** fills to full opacity, straightens to −6°, and the lid tips open 45° from its right end (0.55s ease-out).
-- **Open (clicked):** the lid stays open and a pop-up card above it offers **sort the box by**: meal (default), stars (5 → 1, then not rated; a half star rounds down, so 4½ files under 4), time (under 30 min, under an hour, under 2 hours, 2 hours +, time unknown), cuisine (A–Z), or a – z (a divider only for letters that have cards, showing just the letter, drawn large). Star sorting always shows all five star levels and "not rated", even when empty. Saved in settings (`sortBy`). Non-meal dividers cycle through the meal pastels and fruits; star dividers draw their stars instead of a fruit.
+- **Open (clicked):** the lid stays open and a pop-up card above it offers **sort the box by**: meal (default), stars (5 → 1, then not rated; a half star rounds down, so 4½ files under 4), time (under 30 min, under an hour, under 2 hours, 2 hours +, time unknown), cuisine (A–Z), or a – z (a divider only for letters that have cards, showing just the letter, drawn large). Star sorting shows only the star levels that have cards. Saved in settings (`sortBy`). Non-meal dividers cycle through the meal pastels and fruits; star dividers draw their stars instead of a fruit.
 - **More settings on the card:** recipe writing (handwritten = Zeyada, printed = Mukta Malar, for ingredients, directions and notes everywhere); on the desk (show or put away the blank-card stack and the find slip); export (all recipes as one dated .json file). Each open card also has an export tag for that one recipe.
 - **Narrow screens / high zoom:** stops floating and sits at the end of the page, so it never covers a card.
 

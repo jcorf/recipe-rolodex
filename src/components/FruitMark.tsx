@@ -11,7 +11,7 @@ import { PenCircle } from './ink';
  * Nothing renders until the font has loaded, so a missing file never shows a stray letter.
  */
 let fontLoad: Promise<boolean> | null = null;
-function loadFruitFont() {
+export function loadFruitFont() {
   fontLoad ??= new FontFace('KR Fruitsy', "url('/fonts/kr-fruitsy.ttf')")
     .load()
     .then((face) => {
