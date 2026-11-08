@@ -110,6 +110,17 @@ export default function App() {
     setIndex((i) => Math.min(i, Math.max(0, items.length - 1)));
   }, [items.length]);
 
+  // Rating or editing a card can move it in the box (sorted by stars, a new name under a-z…). The card
+  // you were looking at stays in front, rather than the box showing whatever slid into its place.
+  const follow = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const id = follow.current;
+    if (!id) return;
+    follow.current = null;
+    const i = items.findIndex((item) => item.kind === 'recipe' && item.recipe.id === id);
+    if (i !== -1) setIndex(i);
+  }, [items]);
+
   const focusById = (id: string, list: Recipe[]) => {
     const i = buildItems(list, sortBy).findIndex((item) => item.kind === 'recipe' && item.recipe.id === id);
     if (i !== -1) {
@@ -223,8 +234,10 @@ export default function App() {
               }
               keyboard={!open && !calendarOpen && !share}
               onRate={(recipe, rating) => {
+                follow.current = recipe.id;
                 setRecipes((list) => list.map((r) => (r.id === recipe.id ? { ...r, rating } : r)));
                 api.update(recipe.id, { rating }).catch(() => {
+                  follow.current = recipe.id;
                   setRecipes((list) => list.map((r) => (r.id === recipe.id ? recipe : r))); // put it back if the save failed
                 });
               }}
@@ -298,6 +311,7 @@ export default function App() {
           onClose={close}
           onSave={async (patch) => {
             const saved = await api.update(openRecipe.id, patch);
+            follow.current = saved.id;
             setRecipes((list) => list.map((r) => (r.id === saved.id ? saved : r)));
             return saved;
           }}

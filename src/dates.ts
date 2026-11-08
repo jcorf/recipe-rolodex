@@ -19,6 +19,12 @@ export function monthWeeks(year: number, month: number): (string | null)[][] {
   return Array.from({ length: cells.length / 7 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
 }
 
+/** The Sunday-to-Saturday week a day falls in, as seven YYYY-MM-DDs (across a month's end if it must). */
+export function weekOf(day: string): string[] {
+  const sunday = addDays(day, -parseDay(day).getDay());
+  return Array.from({ length: 7 }, (_, i) => addDays(sunday, i));
+}
+
 export const WEEKDAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 /** A YYYY-MM-DD as a Date at midday (so a clock change never moves it to another day). */

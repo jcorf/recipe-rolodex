@@ -732,6 +732,10 @@ button:disabled { cursor: default; }
 }
 .card-col-empty { margin: 0; color: var(--pencil); }
 
+/* the cards behind show only their pen line through the front card's torn edge, never stray bits of
+   their writing; it comes back as a card reaches the front */
+.index-card.is-behind .card-face > :not(.ink-frame) { opacity: 0; }
+.index-card .card-face > :not(.ink-frame) { transition: opacity 0.35s var(--ease-out); }
 .is-front .card-face { height: auto; padding-bottom: 2.75rem; } /* frame insets scale with height */
 .is-front .card-columns { flex: none; grid-template-rows: auto; }
 .is-front .card-col { overflow: visible; -webkit-mask-image: none; mask-image: none; }
@@ -1704,6 +1708,9 @@ button:disabled { cursor: default; }
   opacity: 0.5;
   pointer-events: none;
 }
+.has-stamp .day-num::after { display: none; } /* a stamped day already stands out; the pen line would cross the stamp */
+.month-grid.is-week td { height: 3.4rem; }
+.month-grid.is-week .day-stamp.is-1-0 { top: 0.35rem; width: 2.2rem; margin-left: -1.1rem; } /* one week on a phone: room for the stamps to sit full size */
 .day-stamp {
   position: absolute;
   left: 50%;
@@ -1962,6 +1969,10 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 .visit-date:focus-visible,
 .visit-date[aria-pressed='true'] { color: var(--ink); border-bottom-color: var(--pencil); }
 .visit-list li.is-moving { background: rgb(255 254 250 / 0.7); }
+/* what you had is asked for: its line is drawn in red until something's written on it */
+.visit-pop .ink-input.is-needed { border-bottom: 1.5px solid var(--enamel); }
+.visit-pop .ink-input.is-asking { animation: ask 0.4s var(--ease-out); }
+@keyframes ask { 25% { translate: -4px 0; } 50% { translate: 3px 0; } 75% { translate: -2px 0; } }
 .visit-dish-input { flex: 1; min-width: 0; font-family: var(--hand); font-size: 1.1rem; line-height: 1.1; }
 .visit-photo.is-small { width: 1.7rem; height: 2.1rem; }
 .visit-photo.is-small .pen-icon { width: 0.95rem; height: 0.95rem; }
