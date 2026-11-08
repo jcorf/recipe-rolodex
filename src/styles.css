@@ -173,6 +173,45 @@ button:disabled { cursor: default; }
 .desk-side.is-left { justify-content: flex-end; }
 .desk-side.is-right { justify-content: flex-start; }
 
+/* the dice: a kraft tag under the rolodex that jumps to something you haven't cooked */
+.surprise-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1.1rem 0.4rem 1.5rem;
+  border: none;
+  border-radius: 6px 10px 10px 6px;
+  background: var(--kraft-light);
+  color: var(--ink);
+  font-family: var(--script);
+  font-size: 1.1rem;
+  line-height: 1.5;
+  box-shadow: 0 1px 1px rgb(70 50 30 / 0.25), 0 3px 8px rgb(70 50 30 / 0.15);
+  rotate: -1.5deg;
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+}
+.surprise-tag::before { /* punched hole, like the card tags */
+  content: '';
+  position: absolute;
+  left: 0.55rem;
+  top: 50%;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: -0.2rem;
+  border-radius: 50%;
+  background: #efe1d0;
+  box-shadow: inset 0 1px 1px rgb(60 40 20 / 0.45);
+}
+.surprise-tag .pen-icon { width: 1.3rem; height: 1.3rem; transition: rotate 0.4s var(--ease-out); }
+.surprise-tag:hover,
+.surprise-tag:focus-visible {
+  transform: translateY(-2px) rotate(2deg);
+  box-shadow: 0 2px 2px rgb(70 50 30 / 0.22), 0 6px 14px rgb(70 50 30 / 0.18);
+}
+.surprise-tag:hover .pen-icon,
+.surprise-tag:focus-visible .pen-icon { rotate: 180deg; }
+
 /* cotton for small desk objects: the same stock, deckle and per-object grain as the cards */
 .stack-card,
 .slip-paper {
@@ -181,6 +220,7 @@ button:disabled { cursor: default; }
   isolation: isolate;
   overflow: hidden;
   background-color: var(--card);
+  -webkit-mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
 }
 .stack-card::before,
@@ -335,6 +375,8 @@ button:disabled { cursor: default; }
   margin: 0 auto;
   transform-origin: 50% 100%;
   transition: transform 0.6s var(--ease-out), opacity 0.35s, height 0.5s var(--ease-out);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 /* The card's shadow is a soft box tucked just inside the torn edge. It's drawn once and reused;
    a drop-shadow filter that traced the deckle was re-rendered every time the desk light moved. */
@@ -368,7 +410,9 @@ button:disabled { cursor: default; }
   transform: rotateX(-105deg);
   opacity: 0;
   pointer-events: none;
-  transition: transform 0.6s var(--ease-out), opacity 0.3s;
+  /* A card that was open to its full length goes back to card size at once and fades fast:
+     animating the height (interpolate-size) left the long card showing under the next, shorter one. */
+  transition: transform 0.6s var(--ease-out), opacity 0.14s linear, height 0s;
 }
 
 /* cotton card stock: shared by faces and tabs. The grain sits on its own layer,
@@ -399,6 +443,7 @@ button:disabled { cursor: default; }
   position: absolute;
   left: var(--tab-x, 6%);
   /* torn like the card, with its own pen outline (TabEdge) */
+  -webkit-mask: url('/deckle-tab.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle-tab.svg') 0 0 / 100% 100% no-repeat;
 }
 .tab-edge {
@@ -443,6 +488,7 @@ button:disabled { cursor: default; }
   flex-direction: column;
   padding: 1.45rem 2.2rem 1.25rem;
   /* deckled cotton edge */
+  -webkit-mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
 }
 
@@ -536,6 +582,7 @@ button:disabled { cursor: default; }
 .card-col {
   min-height: 0;
   overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.1rem), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 1.1rem), transparent);
 }
 .card-col-title {
@@ -575,7 +622,7 @@ button:disabled { cursor: default; }
 
 .is-front .card-face { height: auto; padding-bottom: 2.75rem; } /* frame insets scale with height */
 .is-front .card-columns { flex: none; grid-template-rows: auto; }
-.is-front .card-col { overflow: visible; mask-image: none; }
+.is-front .card-col { overflow: visible; -webkit-mask-image: none; mask-image: none; }
 .is-front .card-steps li { display: block; overflow: visible; }
 
 /* divider card */
@@ -622,7 +669,16 @@ button:disabled { cursor: default; }
 }
 .circled-count > span { translate: 0 0.12em; }
 
+.index-card.is-blank { cursor: pointer; }
 .index-card.is-blank .card-face { justify-content: center; align-items: center; }
+.blank-hint {
+  margin: 0;
+  font-family: var(--script);
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+  transition: color 0.2s;
+}
+.index-card.is-blank:hover .blank-hint { color: var(--enamel-deep); }
 .blank-note {
   margin: 0;
   padding: 1.5rem;
@@ -778,12 +834,27 @@ button:disabled { cursor: default; }
   max-width: 26rem;
   margin: 0 0 1rem;
   padding: 0.5rem 0.8rem;
-  background: #fcefb4;
-  font-size: 0.85rem;
+  background: var(--paper);
+  font-family: var(--script);
+  font-size: 1.05rem;
   font-weight: 400;
-  line-height: 1.35;
-  rotate: 1deg;
-  box-shadow: 0 2px 6px rgb(60 50 20 / 0.18);
+  line-height: 1.4;
+  color: var(--enamel-deep);
+  rotate: -1deg;
+  box-shadow: 0 1px 1px rgb(60 50 20 / 0.2), 0 4px 10px rgb(60 50 20 / 0.12);
+  position: relative;
+}
+.letter-notice::before { /* a strip of masking tape holding the note */
+  content: '';
+  position: absolute;
+  top: -0.55rem;
+  left: 50%;
+  width: 3.6rem;
+  height: 1.1rem;
+  translate: -50% 0;
+  rotate: 2deg;
+  background: rgb(220 193 150 / 0.7);
+  clip-path: polygon(0 8%, 6% 0, 12% 10%, 100% 0, 94% 50%, 100% 92%, 90% 100%, 82% 88%, 0 100%, 5% 50%);
 }
 
 .review { display: block; margin: 0.35rem 0 0.2rem; }
@@ -898,6 +969,7 @@ button:disabled { cursor: default; }
   z-index: 0;
   aspect-ratio: 1000 / 330;
   background: #b18c5f;
+  -webkit-mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
   animation: fade-in 0.5s var(--ease-out) both;
 }
@@ -915,6 +987,7 @@ button:disabled { cursor: default; }
   position: absolute;
   inset: 0;
   background: url('/cotton-4.webp') 0 0 / 256px 256px, var(--kraft);
+  -webkit-mask: url('/holder-mask.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/holder-mask.svg') 0 0 / 100% 100% no-repeat;
 }
 .holder-outline {
@@ -988,6 +1061,24 @@ button:disabled { cursor: default; }
 .action-tag.is-quiet { background: rgb(255 254 250 / 0.55); box-shadow: none; color: var(--ink-soft); }
 .action-tag.is-quiet::before { display: none; }
 .action-tag.is-quiet:hover { background: rgb(255 254 250 / 0.85); }
+
+.action-tag.is-written {
+  width: auto;
+  min-width: 7.2rem;
+  height: auto;
+  grid-auto-flow: row;
+  gap: 0.15rem;
+  padding: 1.05rem 1rem 0.55rem;
+  justify-items: center;
+}
+.tag-written {
+  font-family: var(--script);
+  font-size: 1.1rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.action-tag.is-written:nth-child(even) { rotate: 1.5deg; }
+.action-tag.is-written:nth-child(odd) { rotate: -1.5deg; }
 
 .pen-icon {
   width: 1.45rem;
@@ -1143,6 +1234,7 @@ button:disabled { cursor: default; }
   border: none;
   background: var(--card);
   color: var(--ink);
+  -webkit-mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
 }
 .pop-card::before {
@@ -1239,8 +1331,10 @@ button:disabled { cursor: default; }
   right: 0.2rem;
   bottom: calc(100% + 0.5rem);
   rotate: -2deg;
-  width: 11.5rem;
+  width: 12.5rem;
 }
+/* tall settings card on a short window: scroll inside it rather than slide under the title */
+.jar-pop .pop-card { max-height: calc(100vh - 9.5rem); overflow-y: auto; scrollbar-width: none; }
 .setting-group { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed rgb(61 60 64 / 0.25); }
 .sort-label.writing-print { font-family: var(--sans); font-size: 0.95rem; }
 .sort-label.writing-hand { font-family: var(--hand); font-size: 1.35rem; }
@@ -1252,8 +1346,63 @@ button:disabled { cursor: default; }
   line-height: 1.75;
   cursor: pointer;
 }
-.export-option { width: 100%; padding: 0.12rem 0; border: none; background: none; text-align: left; color: inherit; }
-.export-option small { font-family: var(--sans); font-size: 0.75rem; color: var(--ink-soft); }
+.file-option {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  color: inherit;
+  line-height: 1.55;
+}
+.file-option .sort-label { white-space: nowrap; }
+.file-option .pen-icon { flex: none; width: 1.15rem; height: 1.15rem; color: var(--ink-soft); transition: translate 0.2s var(--ease-out), color 0.2s; }
+.file-option:hover .pen-icon,
+.file-option:focus-visible .pen-icon { color: var(--enamel-deep); translate: 0 -0.1rem; }
+.file-option small { font-family: var(--sans); font-size: 0.75rem; color: var(--ink-soft); }
+.file-note {
+  margin: 0.4rem 0 0;
+  font-family: var(--script);
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--enamel-deep);
+}
+
+/* the "?" in the corner of the settings card, and the note it opens */
+.help-button {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.8rem;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--script);
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--ink);
+  transition: transform 0.2s var(--ease-out);
+}
+.help-button .pen-circle { inset: 0; width: 100%; height: 100%; }
+.help-button:hover,
+.help-button:focus-visible { transform: rotate(-8deg) scale(1.1); }
+.jar-pop.is-help { width: 19rem; }
+.help-note { padding-top: 0.2rem; font-size: 0.85rem; line-height: 1.45; }
+.help-note .pop-title + ul,
+.help-note .pop-title + p { margin-top: 0; }
+.help-note ul { margin: 0 0 0.9rem; padding: 0; list-style: none; }
+.help-note li { margin: 0 0 0.35rem; padding-left: 0.9rem; position: relative; }
+.help-note li::before { content: '–'; position: absolute; left: 0; color: var(--ink-soft); }
+.help-note b { font-weight: 500; }
+.help-note p { margin: 0; font-family: var(--hand); font-size: 1.25rem; line-height: 1.3; }
+.help-note kbd { padding: 0 0.3em; border: 1px solid var(--pencil); border-radius: 3px; font: inherit; font-size: 0.8rem; }
 .sort-label { position: relative; display: inline-block; padding: 0 0.15em; transition: transform 0.2s var(--ease-out); }
 .sort-option:hover .sort-label,
 .sort-option:has(:focus-visible) .sort-label { transform: translateX(0.2rem); }

@@ -8,7 +8,7 @@ import { importRecipe } from './importer.js';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PORT = Number(process.env.PORT) || 5174;
 const app = express();
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '10mb' }));
 
 export const CATEGORIES = ['breakfast', 'small-plates', 'drinks', 'lunch', 'dinner', 'dessert'];
 
@@ -54,6 +54,47 @@ app.post('/api/recipes', async (req, res) => {
   recipes.push(recipe);
   await saveRecipes(recipes);
   res.status(201).json(recipe);
+});
+
+/**
+ * Adds recipes from exported .json: a single card, a list of cards, or an "export all" file
+ * ({ recipes: [...] }). Every card gets a fresh id; one that's already in the box (same id, or
+ * same name and original link) is skipped, so importing a file twice doesn't double the cards.
+ */
+function importedCards(body) {
+  if (Array.isArray(body)) return body;
+  if (Array.isArray(body?.recipes)) return body.recipes;
+  return body && typeof body === 'object' ? [body] : [];
+}
+
+app.post('/api/recipes/import', async (req, res) => {
+  const incoming = importedCards(req.body).filter((r) => r && typeof r === 'object' && !Array.isArray(r));
+  const recipes = await loadRecipes();
+  const sig = (r) => `${String(r.title ?? '').trim().toLowerCase()}|${String(r.sourceUrl ?? '').trim()}`;
+  const seen = new Set(recipes.map(sig));
+  const ids = new Set(recipes.map((r) => r.id));
+  const now = new Date().toISOString();
+  const added = [];
+  let skipped = 0;
+  let invalid = 0;
+  for (const raw of incoming) {
+    const card = clean(raw);
+    if (!card.title && !card.ingredients?.length && !card.steps?.length) { invalid++; continue; }
+    if ((raw.id && ids.has(raw.id)) || seen.has(sig(card))) { skipped++; continue; }
+    const recipe = {
+      id: randomUUID(),
+      title: '', category: '', sourceUrl: '', sourceName: '', image: '', cuisine: '', servings: '',
+      totalTime: '', description: '', ingredients: [], steps: [], rating: 0, review: '',
+      ...card,
+      createdAt: now,
+      updatedAt: now,
+    };
+    if (!recipe.title) recipe.title = 'untitled recipe';
+    seen.add(sig(recipe));
+    added.push(recipe);
+  }
+  if (added.length) await saveRecipes([...recipes, ...added]);
+  res.json({ added, skipped, invalid });
 });
 
 app.put('/api/recipes/:id', async (req, res) => {

@@ -20,3 +20,8 @@ export function servesLabel(servings?: string) {
   if (!servings) return '';
   return /^serves\b/i.test(servings) ? servings.toLowerCase() : `serves ${servings}`;
 }
+
+/** The card numbers its steps itself, so "1. Preheat" shows as "Preheat" (also "2)", "Step 3:"). */
+export function stepText(step: string) {
+  return step.replace(/^\s*(?:step\s*)?\d+\s*[.):-](?!\d)\s*/i, '');
+}

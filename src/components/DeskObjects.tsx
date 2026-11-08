@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
 import { cardLook, InkFrame, InkRule } from './ink';
 import { PenIcon } from './PenIcons';
 
@@ -49,3 +49,22 @@ export const FindSlip = forwardRef<HTMLInputElement, { value: string; onChange: 
     );
   },
 );
+
+/**
+ * A kraft tag that rolls the dice: it brings the box to a recipe you haven't cooked yet
+ * (no stars). `onPick` says whether it found one; when there's none the tag says so for a moment.
+ */
+export function SurpriseTag({ onPick }: { onPick: () => boolean }) {
+  const [empty, setEmpty] = useState(false);
+  useEffect(() => {
+    if (!empty) return;
+    const t = setTimeout(() => setEmpty(false), 2600);
+    return () => clearTimeout(t);
+  }, [empty]);
+  return (
+    <button type="button" className="surprise-tag" onClick={() => setEmpty(!onPick())}>
+      <PenIcon name="dice" />
+      <span role="status">{empty ? 'you’ve cooked them all!' : 'surprise me'}</span>
+    </button>
+  );
+}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CATEGORIES, type Category, type Draft, type Recipe } from '../types';
-import { servesLabel, splitAmount } from '../recipeText';
+import { servesLabel, splitAmount, stepText } from '../recipeText';
 import { cardLook, InkFrame, InkRule } from './ink';
 import { HOLDER } from './inkPaths';
 import { PenIcon, type PenIconName } from './PenIcons';
@@ -64,7 +64,7 @@ const FORM_ID = 'open-card-form';
 
 /** One floating tag: a pen symbol, with its name shown on hover/focus and read out to screen readers. */
 function ActionTag({
-  icon, label, tone = 'kraft', type = 'button', onClick, disabled, autoFocus,
+  icon, label, tone = 'kraft', type = 'button', onClick, disabled, autoFocus, written,
 }: {
   icon: PenIconName;
   label: string;
@@ -73,19 +73,21 @@ function ActionTag({
   onClick?: () => void;
   disabled?: boolean;
   autoFocus?: boolean;
+  /** Write the name on the tag in pen instead of showing it on hover. */
+  written?: boolean;
 }) {
   return (
     <button
       type={type}
       form={type === 'submit' ? FORM_ID : undefined}
-      className={`action-tag is-${tone}`}
+      className={`action-tag is-${tone} ${written ? 'is-written' : ''}`}
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
       autoFocus={autoFocus}
     >
       <PenIcon name={icon} />
-      <span className="action-label" aria-hidden="true">{label}</span>
+      <span className={written ? 'tag-written' : 'action-label'} aria-hidden="true">{label}</span>
     </button>
   );
 }
@@ -329,7 +331,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
                 {editing ? (
                   <textarea className="ink-area hand-area" value={form.steps} onChange={set('steps')} rows={Math.max(4, lines(form.steps).length * 2)} placeholder="one step per line" aria-label="Directions, one step per line" />
                 ) : shown.steps?.length ? (
-                  <ol className="card-steps">{shown.steps.map((step, i) => <li key={i}>{step}</li>)}</ol>
+                  <ol className="card-steps">{shown.steps.map((step, i) => <li key={i}>{stepText(step)}</li>)}</ol>
                 ) : (
                   <p className="card-col-empty">none written down yet</p>
                 )}
@@ -378,8 +380,8 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
         )}
         {editing && !confirmTear && (
           <>
-            <ActionTag icon="save" label={busy ? 'saving…' : isNew ? 'file it in the rolodex' : 'save card'} tone="primary" type="submit" disabled={busy} />
-            <ActionTag icon="cancel" label={isNew ? 'tuck it back' : 'never mind'} onClick={isNew ? onClose : cancelEdit} />
+            <ActionTag icon="save" label={busy ? 'saving…' : isNew ? 'file it' : 'save card'} tone="primary" type="submit" disabled={busy} written />
+            <ActionTag icon="tuck" label={isNew ? 'tuck it back' : 'never mind'} onClick={isNew ? onClose : cancelEdit} written />
             {!isNew && (
               <ActionTag icon="tear" label="tear up card" tone="quiet" onClick={() => setConfirmTear(true)} />
             )}

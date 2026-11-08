@@ -27,3 +27,40 @@ export function exportAll(recipes: Recipe[]) {
 export function exportOne(recipe: Recipe) {
   download(`${slug(recipe.title)}.json`, recipe);
 }
+
+export interface ImportSummary {
+  added: Recipe[];
+  /** Cards already in the box. */
+  skipped: number;
+  /** Cards (or whole files) that weren't recipes. */
+  invalid: number;
+}
+
+/** Reads .json files (one card, a list, or an "export all" file) and adds their recipes to the box. */
+export async function importFiles(files: File[], send: (payload: unknown) => Promise<ImportSummary>): Promise<ImportSummary> {
+  const total: ImportSummary = { added: [], skipped: 0, invalid: 0 };
+  const cards: unknown[] = [];
+  for (const file of files) {
+    try {
+      const data = JSON.parse(await file.text());
+      cards.push(...(Array.isArray(data) ? data : Array.isArray(data?.recipes) ? data.recipes : [data]));
+    } catch {
+      total.invalid++; // not JSON at all
+    }
+  }
+  if (cards.length) {
+    const sent = await send(cards);
+    total.added = sent.added;
+    total.skipped += sent.skipped;
+    total.invalid += sent.invalid;
+  }
+  return total;
+}
+
+/** "added 3 recipes · 1 was already here" */
+export function importMessage({ added, skipped, invalid }: ImportSummary) {
+  const parts = [`added ${added.length} recipe${added.length === 1 ? '' : 's'}`];
+  if (skipped) parts.push(`${skipped} already in the box`);
+  if (invalid) parts.push(`${invalid} couldn’t be read`);
+  return parts.join(' · ');
+}

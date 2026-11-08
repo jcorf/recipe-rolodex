@@ -4,10 +4,12 @@ import { groupRecipes } from '../sorting';
 import { Star, starFill } from './Stickers';
 import { StarRating } from './StarRating';
 import { cardLook, CircledCount, InkFrame, InkRule, TabEdge } from './ink';
-import { ratingLabel, servesLabel, splitAmount } from '../recipeText';
+import { ratingLabel, servesLabel, splitAmount, stepText } from '../recipeText';
 import { dividerFruit, Fruit, FruitPicker } from './FruitMark';
 
 const BEHIND = 6; // cards visible behind the front one
+
+const mod = (n: number, m: number) => ((n % m) + m) % m;
 
 export type RolodexItem =
   | { kind: 'divider'; group: string; label: string; count: number; index: number; total: number; stars?: number; plain?: boolean }
@@ -47,6 +49,8 @@ interface Props {
   recipeCount: number;
   onIndex: (i: number) => void;
   onOpen: (recipe: Recipe) => void;
+  /** The blank card shown when there's nothing to flip through starts a new recipe. */
+  onNew: () => void;
   emptyMessage: string;
   /** When true, the arrow keys flip the rolodex from anywhere on the desk (no click needed first). */
   keyboard: boolean;
@@ -55,10 +59,11 @@ interface Props {
   onRate: (recipe: Recipe, rating: number) => void;
 }
 
-export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onOpen, emptyMessage, keyboard, dividerFruits, onDividerFruit, onRate }: Props) {
+export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onOpen, onNew, emptyMessage, keyboard, dividerFruits, onDividerFruit, onRate }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const count = items.length;
-  const go = (delta: number) => count && onIndex(Math.max(0, Math.min(count - 1, index + delta)));
+  // The box is a loop: past the last card comes the first, and back from the first is the last.
+  const go = (delta: number) => count > 1 && onIndex(mod(index + delta, count));
 
   // Wheel / trackpad flips one card per gesture tick.
   useEffect(() => {
@@ -81,11 +86,13 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
   const activate = (item: RolodexItem) => (item.kind === 'recipe' ? onOpen(item.recipe) : go(1));
 
   const onKeyDown = (e: KeyboardEvent | React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); go(1); }
-    else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    // up flips forward (cards lift away from you), down brings the last one back
+    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
     else if (e.key === 'Home') { e.preventDefault(); onIndex(0); }
     else if (e.key === 'End') { e.preventDefault(); onIndex(count - 1); }
     else if ((e.key === 'Enter' || e.key === ' ') && current) { e.preventDefault(); activate(current); }
+    else if ((e.key === 'Enter' || e.key === ' ') && !count) { e.preventDefault(); onNew(); }
   };
 
   // Arrow keys work straight away, without clicking the rolodex first. They're left alone while
@@ -123,16 +130,19 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
       >
         <div className="rolodex-stack">
           {count === 0 && (
-            <div className="index-card is-front is-blank">
+            <div className="index-card is-front is-blank" onClick={onNew}>
               <div className="card-face">
                 <InkFrame variant={0} />
                 <p className="blank-note">{emptyMessage}</p>
+                <p className="blank-hint">click this card to write a new one</p>
               </div>
             </div>
           )}
           {items.map((item, i) => {
-            const d = i - index;
-            if (d < -1 || d > BEHIND) return null;
+            // distance from the front card, going round the loop: the card just before it is flipped away
+            const ahead = mod(i - index, count);
+            const d = count > 2 && ahead === count - 1 ? -1 : ahead;
+            if (d > BEHIND) return null;
             const state = d === 0 ? 'is-front' : d < 0 ? 'is-flipped' : 'is-behind';
             const isDivider = item.kind === 'divider';
             const look = cardLook(isDivider ? `divider-${item.group}` : item.recipe.id);
@@ -239,7 +249,7 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
                       <h3 className="card-col-title">directions</h3>
                       {recipe.steps.length ? (
                         <ol className="card-steps">
-                          {recipe.steps.map((step, n) => <li key={n}>{step}</li>)}
+                          {recipe.steps.map((step, n) => <li key={n}>{stepText(step)}</li>)}
                         </ol>
                       ) : (
                         <p className="card-col-empty">none written down yet</p>

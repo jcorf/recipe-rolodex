@@ -3,6 +3,7 @@ import type { Settings, SortBy } from '../types';
 import { SORT_OPTIONS } from '../sorting';
 import { useDismiss } from '../useDismiss';
 import { PenCircle } from './ink';
+import { PenIcon } from './PenIcons';
 
 /**
  * The strawberry jam jar in the desk's bottom-right corner: the way into settings.
@@ -19,8 +20,31 @@ const DESK: { key: 'showNewCard' | 'showFind'; label: string }[] = [
   { key: 'showFind', label: 'find' },
 ];
 
+/** The "?" card: how the desk works, and why it exists. */
+function HelpNote() {
+  return (
+    <div className="help-note">
+      <span className="pop-title">how it works</span>
+      <ul>
+        <li><b>flip</b> with ↑ ↓ ← →, the scroll wheel, or by clicking a tab. it goes round and round.</li>
+        <li><b>open</b> the front card to read it, edit it, or give it stars. half stars count.</li>
+        <li><b>new card</b>: pull one from the stack, or click a blank one. paste a link on the first line and it fills itself in.</li>
+        <li><b>find</b> with <kbd>/</kbd>. it looks through names, meals, cuisines and ingredients.</li>
+        <li><b>surprise me</b> picks something you haven’t cooked yet.</li>
+        <li>click a <b>fruit</b> to swap it for another.</li>
+        <li><b>the box</b>: save a copy of every recipe, or add some back from .json files.</li>
+      </ul>
+      <span className="pop-title">why I made it</span>
+      <p>
+        a place to keep every recipe I love, close to how a real recipe box feels, and a nudge to
+        actually cook the ones I’ve saved.
+      </p>
+    </div>
+  );
+}
+
 export function JamJar({
-  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll,
+  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, onImportFiles,
 }: {
   sortBy: SortBy;
   onSortBy: (sortBy: SortBy) => void;
@@ -31,17 +55,33 @@ export function JamJar({
   onDesk: (patch: Partial<Pick<Settings, 'showNewCard' | 'showFind'>>) => void;
   /** Save every recipe as a .json file. */
   onExportAll: () => void;
+  /** Add recipes from exported .json files; resolves to a line saying what happened. */
+  onImportFiles: (files: File[]) => Promise<string>;
 }) {
   const [open, setOpen] = useState(false);
+  const [help, setHelp] = useState(false);
+  const [importNote, setImportNote] = useState('');
   const ref = useRef<HTMLDivElement>(null);
-  const close = useCallback(() => setOpen(false), []);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const close = useCallback(() => { setOpen(false); setHelp(false); setImportNote(''); }, []);
   useDismiss(open, ref, close);
 
   return (
     <div ref={ref} className={`jam-jar ${open ? 'is-open' : ''}`}>
       {open && (
-        <div className="pop jar-pop">
+        <div className={`pop jar-pop ${help ? 'is-help' : ''}`}>
           <div className="pop-card sort-card">
+            <button
+              type="button"
+              className="help-button"
+              aria-label={help ? 'Back to settings' : 'How this works'}
+              aria-pressed={help}
+              onClick={() => setHelp((h) => !h)}
+            >
+              {help ? '×' : '?'}
+              <PenCircle variant={3} />
+            </button>
+            {help ? <HelpNote /> : (<>
             <div role="radiogroup" aria-labelledby="sort-title">
             <span id="sort-title" className="pop-title">sort the box by</span>
             {SORT_OPTIONS.map((o, i) => (
@@ -96,11 +136,32 @@ export function JamJar({
               ))}
             </div>
             <div className="setting-group">
-              <span className="pop-title">export</span>
-              <button type="button" className="sort-option export-option" onClick={onExportAll}>
-                <span className="sort-label">all recipes <small>.json</small></span>
+              <span className="pop-title">the box</span>
+              <button type="button" className="sort-option file-option" onClick={onExportAll}>
+                <PenIcon name="export" />
+                <span className="sort-label">save a copy <small>.json</small></span>
               </button>
+              <button type="button" className="sort-option file-option" onClick={() => fileRef.current?.click()}>
+                <PenIcon name="import" />
+                <span className="sort-label">add from files <small>.json</small></span>
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".json,application/json"
+                multiple
+                className="visually-hidden"
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={async (e) => {
+                  const files = [...(e.target.files ?? [])];
+                  e.target.value = ''; // so picking the same file again still counts
+                  if (files.length) setImportNote(await onImportFiles(files));
+                }}
+              />
+              {importNote && <p className="file-note" role="status">{importNote}</p>}
             </div>
+            </>)}
           </div>
         </div>
       )}

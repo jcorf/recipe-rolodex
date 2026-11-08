@@ -1,15 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
 import { CATEGORIES, type Draft, type Recipe, type Settings } from './types';
-import { Rolodex, buildItems } from './components/Rolodex';
-import { CardStack, FindSlip } from './components/DeskObjects';
-import { exportAll } from './exportRecipes';
+import { Rolodex, buildItems, type RolodexItem } from './components/Rolodex';
+import { CardStack, FindSlip, SurpriseTag } from './components/DeskObjects';
+import { exportAll, importFiles, importMessage } from './exportRecipes';
 import { FruitMark } from './components/FruitMark';
 import { JamJar } from './components/JamJar';
 import { useDriftingLight } from './useDriftingLight';
 import { Letter } from './components/Letter';
 
 const categoryLabel = (key: string) => CATEGORIES.find((c) => c.key === key)?.label ?? '';
+
+function filterRecipes(recipes: Recipe[], query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return recipes;
+  return recipes.filter((r) =>
+    [r.title, r.cuisine, r.category, categoryLabel(r.category), r.review, ...r.ingredients].some((field) => field.toLowerCase().includes(q)),
+  );
+}
 
 type Open =
   | { kind: 'saved'; id: string }
@@ -37,13 +45,7 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return recipes;
-    return recipes.filter((r) =>
-      [r.title, r.cuisine, r.category, categoryLabel(r.category), r.review, ...r.ingredients].some((field) => field.toLowerCase().includes(q)),
-    );
-  }, [recipes, query]);
+  const shown = useMemo(() => filterRecipes(recipes, query), [recipes, query]);
 
   const sortBy = settings?.sortBy ?? 'category';
   const items = useMemo(() => buildItems(shown, sortBy), [shown, sortBy]);
@@ -67,6 +69,15 @@ export default function App() {
     }
   };
 
+  /** The dice: jump to a random card with no stars yet, wherever it is filed. Returns false if there isn't one. */
+  const surprise = () => {
+    const front = items[index];
+    const unmade = recipes.filter((r) => !r.rating && !(front?.kind === 'recipe' && front.recipe.id === r.id));
+    if (!unmade.length) return false;
+    focusById(unmade[Math.floor(Math.random() * unmade.length)].id, recipes);
+    return true;
+  };
+
   /** Pasting a link on a new card's first line fills the card from the page. */
   const importLink = async (url: string) => {
     const { found, draft } = await api.importLink(url);
@@ -78,9 +89,12 @@ export default function App() {
     };
   };
 
+  /** Where a search starts: on its first recipe, not the divider above it. */
+  const firstRecipe = (list: RolodexItem[]) => Math.max(0, list.findIndex((item) => item.kind === 'recipe'));
+
   const find = (q: string) => {
     setQuery(q);
-    setIndex(0);
+    setIndex(q.trim() ? firstRecipe(buildItems(filterRecipes(recipes, q), sortBy)) : 0);
   };
 
   // "/" jumps to the find slip (unless you're already writing somewhere, or a card is open)
@@ -136,6 +150,7 @@ export default function App() {
               index={index}
               onIndex={setIndex}
               onOpen={(r) => setOpen({ kind: 'saved', id: r.id })}
+              onNew={() => setOpen({ kind: 'draft', draft: {} })}
               emptyMessage={
                 loading
                   ? 'dusting off the cards…'
@@ -150,6 +165,7 @@ export default function App() {
             </div>
           </div>
         )}
+        {!loadError && recipes.length > 0 && <SurpriseTag onPick={surprise} />}
       </main>
 
       <JamJar
@@ -163,6 +179,15 @@ export default function App() {
           changeSettings(patch);
         }}
         onExportAll={() => exportAll(recipes)}
+        onImportFiles={async (files) => {
+          try {
+            const summary = await importFiles(files, api.importRecipes);
+            if (summary.added.length) setRecipes((list) => [...list, ...summary.added]);
+            return importMessage(summary);
+          } catch (err) {
+            return (err as Error).message;
+          }
+        }}
       />
 
       {open?.kind === 'saved' && openRecipe && (

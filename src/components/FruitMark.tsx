@@ -96,6 +96,8 @@ export function FruitPicker({
         <span
           ref={popRef}
           className="pop fruit-pop"
+          // the picker is portaled out of the card, but React events still bubble to it: don't flip the card
+          onClick={(e) => e.stopPropagation()}
           style={{ left: at.x, top: at.above ? at.y - 10 : at.y + 10, translate: at.above ? '-50% -100%' : '-50% 0' }}
         >
           <span className="pop-card">
