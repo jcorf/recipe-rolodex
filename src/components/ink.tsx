@@ -113,3 +113,20 @@ export function PenCircle({ variant = 0 }: { variant?: number }) {
     </svg>
   );
 }
+
+/**
+ * A card's "time · serves · cuisine" (or "price · place · city") line. A price is set in print: the pen
+ * font's "$" is drawn far wider than the room it takes, so "$$" ran over the next word.
+ */
+export function MetaLine({ items, price, className }: { items: (string | undefined)[]; price?: string; className: string }) {
+  return (
+    <p className={className}>
+      {items.map((item, i) => (
+        <span key={i}>
+          {i > 0 && '  ·  '}
+          {item === price ? <span className="meta-price">{item}</span> : item}
+        </span>
+      ))}
+    </p>
+  );
+}
