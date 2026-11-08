@@ -1,5 +1,5 @@
 import { CATEGORIES, type Recipe } from './types';
-import { ratingLabel, servesLabel, stepText } from './recipeText';
+import { abbreviateUnits, ratingLabel, servesLabel, stepText } from './recipeText';
 
 function download(filename: string, data: unknown, type = 'application/json') {
   const blob = new Blob([typeof data === 'string' ? data : JSON.stringify(data, null, 2)], { type });
@@ -74,7 +74,7 @@ export function recipeToMarkdown(r: Recipe) {
   if (details.length) out.push(`*${details.join(' · ')}*`);
   if (r.sourceUrl) out.push(`From [${r.sourceName && r.sourceName !== 'sample card' ? r.sourceName : r.sourceUrl}](${r.sourceUrl})`);
   if (r.review) out.push(r.review.split('\n').map((l) => `> ${l}`).join('\n'));
-  out.push('## Ingredients', r.ingredients.length ? r.ingredients.map((i) => `- ${i}`).join('\n') : '_none written down yet_');
+  out.push('## Ingredients', r.ingredients.length ? r.ingredients.map((i) => `- ${abbreviateUnits(i)}`).join('\n') : '_none written down yet_');
   out.push('## Directions', r.steps.length ? r.steps.map((s, n) => `${n + 1}. ${stepText(s)}`).join('\n') : '_none written down yet_');
   return out.join('\n\n') + '\n';
 }

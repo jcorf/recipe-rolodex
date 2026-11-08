@@ -1254,6 +1254,13 @@ button:disabled { cursor: default; }
   }
 }
 
+/* "casual script" recipe writing (jar setting): the same places, in Caveat (it runs larger than Zeyada) */
+[data-recipe-font='caveat'] .card-columns { font-family: 'Caveat', cursive; font-size: 1.1rem; line-height: 1.15; }
+[data-recipe-font='caveat'] .open-columns,
+[data-recipe-font='caveat'] .hand-area,
+[data-recipe-font='caveat'] .review-text,
+[data-recipe-font='caveat'] .review-area { font-family: 'Caveat', cursive; font-size: 1.3rem; line-height: 1.2; }
+
 /* "printed" recipe writing (jar setting): ingredients, directions and notes in Mukta Malar */
 [data-recipe-font='print'] .card-columns { font-family: var(--sans); font-size: 0.8rem; line-height: 1.3; }
 [data-recipe-font='print'] .open-columns,
@@ -1385,6 +1392,7 @@ button:disabled { cursor: default; }
 .jar-pop .pop-card { max-height: calc(100vh - 9.5rem); overflow-y: auto; scrollbar-width: none; }
 .setting-group { margin-top: 0.7rem; padding-top: 0.5rem; border-top: 1px dashed rgb(61 60 64 / 0.25); }
 .sort-label.writing-print { font-family: var(--sans); font-size: 0.95rem; }
+.sort-label.writing-caveat { font-family: 'Caveat', cursive; font-size: 1.3rem; }
 .sort-label.writing-hand { font-family: var(--hand); font-size: 1.35rem; }
 .sort-option {
   display: block;

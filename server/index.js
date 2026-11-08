@@ -145,7 +145,7 @@ app.put('/api/settings', async (req, res) => {
   }
   let recipeFont = current.recipeFont;
   if (req.body?.recipeFont !== undefined) {
-    if (!['hand', 'print'].includes(req.body.recipeFont)) return res.status(400).json({ error: 'Pick handwritten or printed.' });
+    if (!['hand', 'caveat', 'print'].includes(req.body.recipeFont)) return res.status(400).json({ error: 'Pick a handwriting or printed.' });
     recipeFont = req.body.recipeFont;
   }
   // the page always sends the whole set of divider fruits, so it replaces the saved one

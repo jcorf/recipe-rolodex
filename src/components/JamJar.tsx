@@ -12,6 +12,7 @@ import { PenIcon } from './PenIcons';
  */
 const WRITING: { key: Settings['recipeFont']; label: string }[] = [
   { key: 'hand', label: 'handwritten' },
+  { key: 'caveat', label: 'casual script' },
   { key: 'print', label: 'printed' },
 ];
 

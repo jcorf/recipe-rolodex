@@ -2,6 +2,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@fontsource/la-belle-aurore';
 import '@fontsource/zeyada';
+import '@fontsource/caveat/400.css';
+import '@fontsource/caveat/500.css';
 import '@fontsource/mukta-malar/300.css';
 import '@fontsource/mukta-malar/400.css';
 import '@fontsource/mukta-malar/500.css';

@@ -39,8 +39,8 @@ export interface Settings {
   sortBy: SortBy;
   /** KR Fruitsy letter for the fruit beside the title. */
   titleFruit: string;
-  /** Ingredients, directions and notes: handwritten (Zeyada) or printed (Mukta Malar). */
-  recipeFont: 'hand' | 'print';
+  /** Ingredients, directions and notes: handwritten (Zeyada or Caveat) or printed (Mukta Malar). */
+  recipeFont: 'hand' | 'caveat' | 'print';
   /** Fruit picked for a divider, by divider key. */
   dividerFruits: Record<string, string>;
   /** Whether the blank-card stack and the find slip are out on the desk. */
