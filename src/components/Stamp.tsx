@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
-import { scallopPath } from '../scallop';
+import { scallopPath, zigzagPath } from '../scallop';
 import { stampGrainUrl } from '../stampGrain';
+import { PATHS } from './PenIcons';
 import type { StampFinish } from '../types';
 import { usePhotoSrc } from '../usePhoto';
 
@@ -17,6 +18,8 @@ export const STAMP_INSET = 7;
 export const STAMP_VEIL = 0.3;
 
 const OUTLINE = scallopPath(STAMP_W, STAMP_H, 4.6);
+/** A meal eaten out is cut with pinking shears instead of perforated. */
+export const ZIGZAG_OUTLINE = zigzagPath(STAMP_W, STAMP_H, 3.6);
 /** The pen line around the picture: a little uneven on every side. */
 export const STAMP_PEN =
   'M7.4 7.3 Q22 6.5 36 6.9 Q50 7.3 64.7 7.2 Q65.5 30 64.9 44 Q64.3 62 65 80.8 Q50 81.6 36 81.1 Q22 80.6 7.2 80.9 Q6.6 62 7.1 44 Q7.6 30 7.4 7.3Z';
@@ -24,8 +27,8 @@ export const STAMP_PEN =
 export const STAMP_CANCEL = 'M38 76c6-3 11 3 17 0s9 1 14-1 M36 69.5c6-3 11 3 17 0s9 1 16-1.5 M40 82.5c5-2.5 10 2.5 15 0s9 .5 14-1.5';
 
 export function Stamp({
-  image: link, photo, fill, fruit, label, finish = 'plain', className = '',
-}: { image?: string; photo?: string; fill: string; fruit: string; label: string; finish?: StampFinish; className?: string }) {
+  image: link, photo, fill, fruit, label, finish = 'plain', zigzag = false, ateOut = false, className = '',
+}: { image?: string; photo?: string; fill: string; fruit: string; label: string; finish?: StampFinish; zigzag?: boolean; ateOut?: boolean; className?: string }) {
   const id = useId();
   const image = usePhotoSrc({ photo, image: link }, 'thumb');
   const [broken, setBroken] = useState(false);
@@ -39,7 +42,7 @@ export function Stamp({
           <rect x={STAMP_INSET} y={STAMP_INSET} width={inner} height={innerH} />
         </clipPath>
       </defs>
-      <path d={OUTLINE} fill={STAMP_PAPER} />
+      <path d={zigzag ? ZIGZAG_OUTLINE : OUTLINE} fill={STAMP_PAPER} />
       {showImage ? (
         <image
           href={image}
@@ -51,9 +54,14 @@ export function Stamp({
       ) : (
         <>
           <rect x={STAMP_INSET} y={STAMP_INSET} width={inner} height={innerH} fill={fill} />
-          <text x={STAMP_W / 2} y={STAMP_H / 2 + 14} textAnchor="middle" fontSize="44" fill="#3d3c40" style={{ fontFamily: "'KR Fruitsy'" }}>
-            {fruit}
-          </text>
+          {ateOut ? (
+            // a meal eaten out with no photo: a fork, drawn in pen
+            <path d={PATHS.fork} transform={`translate(${STAMP_W / 2 - 19} ${STAMP_H / 2 - 17}) scale(1.6)`} fill="none" stroke="#3d3c40" strokeWidth="1.15" strokeLinecap="round" strokeLinejoin="round" />
+          ) : (
+            <text x={STAMP_W / 2} y={STAMP_H / 2 + 14} textAnchor="middle" fontSize="44" fill="#3d3c40" style={{ fontFamily: "'KR Fruitsy'" }}>
+              {fruit}
+            </text>
+          )}
         </>
       )}
       {finish === 'faded' && (

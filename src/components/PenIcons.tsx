@@ -1,7 +1,7 @@
 // Simple symbols for the open card's actions, drawn like the rest of the card: one pen,
 // round ends, slightly uneven lines. 24×24, stroked in currentColor.
 
-const PATHS = {
+export const PATHS = {
   // a curving arrow tipping back down into the box
   tuck: 'M18.5 6.2c-4.6-.6-9.4.9-9.9 6.6l-.2 4.4 M5.3 14.4l3.1 3.4 3.2-3.2',
   // pencil
@@ -29,6 +29,12 @@ const PATHS = {
   // chevrons: back / forward a month
   left: 'M14.6 5.4c-2.4 2.1-4.5 4.4-6.2 6.7 1.8 2.3 3.9 4.5 6.3 6.5',
   right: 'M9.4 5.4c2.4 2.1 4.5 4.4 6.2 6.7-1.8 2.3-3.9 4.5-6.3 6.5',
+  // a fork and a knife: a restaurant
+  fork: 'M7.6 4.4c-.3 2.1-.3 4.1 0 5.9.1 1.1.9 1.7 1.7 1.8l-.1 7.9 M5.5 4.6c-.1 1.9-.1 3.7.1 5.5 M9.9 4.5c.1 1.9.1 3.7-.1 5.6 M16 4.3c-1.8 1.7-2.4 4.3-2 6.9.2 1 1 1.4 2 1.4l-.1 7',
+  // a light plus: add
+  plus: 'M12 6c.1 4-.1 8 0 12 M6 12c4 .1 8-.1 12 0',
+  // a minus: zoom out
+  minus: 'M6 12c4 .1 8-.1 12 0',
   // a page torn across the middle
   tear: 'M7.2 3.8h9.7l.1 7.4-2.2 1.3-2-1.6-2.1 1.5-1.9-1.5-1.7 1.2z M7.1 20.3v-4.6l1.8-1.3 2 1.4 2-1.5 2.2 1.6 1.9-1.3v5.6z',
 } as const;

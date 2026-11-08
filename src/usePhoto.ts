@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
-import { makePhoto, type PhotoSize } from './photos';
+import { makePhoto, type PhotoFiles, type PhotoSize } from './photos';
 
 /** Kept photos as addresses the page can show, made once per visit and shared by every card that asks. */
 const urls = new Map<string, Promise<string | null>>();
@@ -11,6 +11,22 @@ export function photoUrl(id: string, size: PhotoSize): Promise<string | null> {
     urls.set(key, api.photo(id, size).then((blob) => (blob ? URL.createObjectURL(blob) : null)).catch(() => null));
   }
   return urls.get(key)!;
+}
+
+/** Keeps two ready-made copies of a photo (a crop from the editor) and hands back its id. */
+export const savePhotoFiles = (files: PhotoFiles) => api.savePhoto(files);
+
+/**
+ * The picture to crop for a card: its kept photo, else its web photo (read through the app so the
+ * canvas can use it), else nothing. Resolves to '' when there's no photo to edit.
+ */
+export async function editableSource(recipe: { photo?: string; image?: string }): Promise<string> {
+  if (recipe.photo) {
+    const kept = await photoUrl(recipe.photo, 'main');
+    if (kept) return kept;
+  }
+  const link = recipe.image ?? '';
+  return /^https?:/i.test(link) ? `/api/image?url=${encodeURIComponent(link)}` : '';
 }
 
 /** A photo picked on this device: shrunk, kept, and its id handed back for the card. */

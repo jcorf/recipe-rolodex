@@ -2,7 +2,7 @@
 import type { Recipe, Settings } from '../types';
 import type { Store } from './types';
 import type { PhotoFiles } from '../photos';
-import { applySettings, cardsToAdd, newId, newRecipe, patchRecipe, withDefaults } from './rules';
+import { applySettings, cardsToAdd, newId, newRecipe, patchRecipe, photoIds, withDefaults } from './rules';
 import { askToPersist, del, get, getAll, getAllKeys, put, tx } from './db';
 import seed from './seed.json';
 
@@ -65,7 +65,7 @@ async function sweepPhotos() {
   if (swept) return;
   swept = true;
   await tx(['recipes', 'photos'], 'readwrite', async (t) => {
-    const used = new Set((await getAll<Recipe>(t, 'recipes')).map((r) => r.photo).filter(Boolean));
+    const used = new Set((await getAll<Recipe>(t, 'recipes')).flatMap(photoIds));
     const keys = (await getAllKeys(t, 'photos')) as string[];
     const old = Date.now() - UNUSED_PHOTO_MS;
     for (const id of keys) {
@@ -102,8 +102,9 @@ export const localStore: Store = {
       if (!current) throw new Error('That card is no longer in the rolodex.');
       const next = patchRecipe(current, patch as Record<string, unknown>);
       await put(t, 'recipes', next);
-      // a replaced or removed photo goes with it
-      if (current.photo && current.photo !== next.photo) await del(t, 'photos', current.photo);
+      // a replaced or removed photo (the card's own, or one on a visit) goes with it
+      const kept = new Set(photoIds(next));
+      for (const id of photoIds(current)) if (!kept.has(id)) await del(t, 'photos', id);
       return next;
     });
   },
@@ -114,7 +115,7 @@ export const localStore: Store = {
       const current = await get<Recipe>(t, 'recipes', id);
       if (!current) throw new Error('That card is no longer in the rolodex.');
       await del(t, 'recipes', id);
-      if (current.photo) await del(t, 'photos', current.photo);
+      for (const id of photoIds(current)) await del(t, 'photos', id);
     });
   },
 

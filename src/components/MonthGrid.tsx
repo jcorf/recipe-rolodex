@@ -1,5 +1,5 @@
 import { MONTH_NAMES, WEEKDAYS, monthWeeks, pickShown, stampTilt, todayYmd } from '../dates';
-import type { Recipe, StampFinish } from '../types';
+import type { Recipe, StampCard, StampFinish } from '../types';
 import { Stamp } from './Stamp';
 import { dividerFruit } from './FruitMark';
 
@@ -9,9 +9,15 @@ export interface StampLook {
   fruits: Record<string, string>;
   /** How stamps are finished (a setting): plain, grainy or faded. */
   finish?: StampFinish;
+  /** Meals eaten out get a zigzag edge (a setting). */
+  ateOutBorder?: boolean;
 }
 
-export const stampFill = (r: Recipe, look: StampLook) => look.colors[r.category || 'unsorted'] ?? '#e4e2dd';
+/** A restaurant borrows the meal pastels by its kind of place (bars: drinks blue, bakeries: dessert pink…). */
+const VENUE_PASTEL: Record<string, string> = { restaurant: 'dinner', bar: 'drinks', bakery: 'dessert', 'fast-casual': 'lunch' };
+
+export const stampFill = (r: Recipe, look: StampLook) =>
+  look.colors[r.kind === 'restaurant' ? VENUE_PASTEL[r.venue ?? ''] ?? 'unsorted' : r.category || 'unsorted'] ?? '#e4e2dd';
 export const stampFruit = (r: Recipe, look: StampLook) => dividerFruit(r.category || 'unsorted', 0, look.fruits);
 
 /**
@@ -25,13 +31,13 @@ export function MonthGrid({
   year: number;
   month: number;
   /** Recipes cooked, by day. */
-  days: Map<string, Recipe[]>;
+  days: Map<string, StampCard[]>;
   look: StampLook;
   /** Re-rolled by the caller to shuffle every stamp's lean. */
   seed?: number;
   compact?: boolean;
   onDay?: (day: string) => void;
-  onStamp?: (recipe: Recipe) => void;
+  onStamp?: (recipe: StampCard) => void;
 }) {
   const today = todayYmd();
   return (
@@ -46,12 +52,12 @@ export function MonthGrid({
               if (!day) return <td key={i} className="is-blank" />;
               const cooked = days.get(day) ?? [];
               const shown = pickShown(cooked, day, seed);
-              const label = `${MONTH_NAMES[month]} ${Number(day.slice(8))}${cooked.length ? `, cooked ${cooked.map((r) => r.title).join(', ')}` : ''}`;
+              const label = `${MONTH_NAMES[month]} ${Number(day.slice(8))}${cooked.length ? `, ${cooked.map((r) => (r.ateOut ? `ate at ${r.title}` : `cooked ${r.title}`)).join(', ')}` : ''}`;
               const face = (
                 <>
                   <span className="day-num">{Number(day.slice(8))}</span>
                   {shown.map((r, n) => {
-                    const stamp = <Stamp image={r.image} photo={r.photo} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} finish={look.finish} />;
+                    const stamp = <Stamp image={r.image} photo={r.photo} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} finish={look.finish} zigzag={!!r.ateOut && !!look.ateOutBorder} ateOut={!!r.ateOut} />;
                     const cls = `day-stamp is-${shown.length}-${n}`;
                     const lean = { rotate: `${stampTilt(r.id, day, seed)}deg` };
                     return onStamp && !onDay ? (

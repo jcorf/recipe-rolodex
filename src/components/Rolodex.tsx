@@ -5,6 +5,8 @@ import { Star, starFill } from './Stickers';
 import { StarRating } from './StarRating';
 import { cardLook, CircledCount, InkFrame, InkRule, TabEdge } from './ink';
 import { ratingLabel, servesLabel, splitAmount, stepText } from '../recipeText';
+import { shortDay } from '../dates';
+import { PenIcon } from './PenIcons';
 import { dividerFruit, Fruit, FruitPicker } from './FruitMark';
 import { playFlip } from '../flipSound';
 
@@ -214,12 +216,17 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
             }
 
             const { recipe } = item;
+            const out = recipe.kind === 'restaurant';
             const serves = servesLabel(recipe.servings);
-            const meta = [recipe.totalTime, serves, recipe.cuisine].filter(Boolean);
+            const meta = out
+              ? [recipe.price, recipe.venue, recipe.location, recipe.cuisine].filter(Boolean)
+              : [recipe.totalTime, serves, recipe.cuisine].filter(Boolean);
+            const visits = [...(recipe.visits ?? [])].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
             return (
               <div key={key} className={`index-card ${state}`} style={style} aria-hidden={d !== 0} onClick={onClick}>
-                <span className="card-tab is-plain">
+                <span className={`card-tab is-plain ${out ? 'is-restaurant' : ''}`}>
                   <TabEdge variant={look.tab} />
+                  {out && <PenIcon name="fork" />}
                 </span>
                 <div className="card-face">
                   <InkFrame variant={look.frame} />
@@ -244,6 +251,30 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
                   </header>
                   <InkRule variant={look.rule} />
                   <div className="card-columns">
+                    {out ? (
+                      <>
+                        <section className="card-col">
+                          <h3 className="card-col-title">what we ate</h3>
+                          {visits.length ? (
+                            <ul className="card-ingredients">
+                              {visits.map((v, n) => (
+                                <li key={n}>
+                                  <span className="amt">{shortDay(v.date)}</span>
+                                  <span>{v.dish || 'a visit'}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="card-col-empty">no visits written down yet</p>
+                          )}
+                        </section>
+                        <section className="card-col">
+                          <h3 className="card-col-title">thoughts</h3>
+                          {recipe.review ? <p className="card-thoughts">{recipe.review}</p> : <p className="card-col-empty">nothing written down yet</p>}
+                        </section>
+                      </>
+                    ) : (
+                      <>
                     <section className="card-col">
                       <h3 className="card-col-title">ingredients</h3>
                       {recipe.ingredients.length ? (
@@ -272,6 +303,8 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
                         <p className="card-col-empty">none written down yet</p>
                       )}
                     </section>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

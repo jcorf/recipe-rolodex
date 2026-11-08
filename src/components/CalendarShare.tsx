@@ -3,6 +3,7 @@ import { MONTH_NAMES, addDays, longDate, rangeLabel, todayYmd, weekdayName } fro
 import type { Recipe } from '../types';
 import { fileSlug, renderDayImage, renderMonthImage, renderWeekImage, type ShareContext } from '../shareImage';
 import { PenCircle } from './ink';
+import { stampsByDay } from '../stamps';
 import { PenIcon } from './PenIcons';
 import { ShareSheet } from './ShareSheet';
 
@@ -44,8 +45,8 @@ export function CalendarShare({
   const today = todayYmd();
   // the day to start on: the latest one with a stamp (up to today), so the picture isn't empty
   const latestCooked = useMemo(
-    () => [...new Set(recipes.flatMap((r) => r.cooked ?? []))].filter((d) => d <= today).sort().pop(),
-    [recipes, today],
+    () => [...stampsByDay(recipes, context.show ?? { recipes: true, restaurants: true }).keys()].filter((d) => d <= today).sort().pop(),
+    [recipes, today, context.show],
   );
   const [page, setPage] = useState<Page>('month');
   const [weekStart, setWeekStart] = useState(addDays(today, -6)); // the last seven days, ending today

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MONTH_NAMES, addMonths } from '../dates';
-import { STAMP_FINISHES, type Recipe, type StampFinish } from '../types';
+import { STAMP_FINISHES, type Recipe, type Shown, type StampCard, type StampFinish } from '../types';
+import { stampsByDay } from '../stamps';
 import { cardLook, InkFrame, InkRule, PenCircle } from './ink';
 import { ActionTag } from './ActionTag';
 import { PenIcon } from './PenIcons';
@@ -10,22 +11,20 @@ import { MonthGrid, type StampLook } from './MonthGrid';
  * The calendar of what was cooked: a cotton page of one month at a time, a stamp of the recipe on
  * every day it was cooked. Flip months with the pen arrows or ← →; click a stamp to open its recipe.
  */
-export function cookedByDay(recipes: Recipe[]) {
-  const days = new Map<string, Recipe[]>();
-  for (const r of recipes) for (const day of r.cooked ?? []) days.set(day, [...(days.get(day) ?? []), r]);
-  return days;
-}
-
 export function CalendarView({
-  recipes, look, onOpenRecipe, onShare, onClose, onFinish, paused = false,
+  recipes, show, look, onOpenRecipe, onShare, onClose, onFinish, onAteOutBorder, paused = false,
 }: {
+  /** Which kinds of card stamp the calendar (recipes cooked, meals eaten out). */
+  show: Shown;
+  /** Give meals eaten out a zigzag edge, or the same edge as a cooked dish. */
+  onAteOutBorder: (on: boolean) => void;
   /** Choose how the stamps are finished: plain, grainy or faded (saved as a setting). */
   onFinish: (finish: StampFinish) => void;
   /** A share sheet is open on top: leave the keys to it. */
   paused?: boolean;
   recipes: Recipe[];
   look: StampLook;
-  onOpenRecipe: (recipe: Recipe) => void;
+  onOpenRecipe: (recipe: StampCard) => void;
   /** Share this month as a picture. */
   onShare: (year: number, month: number, seed: number) => void;
   onClose: () => void;
@@ -36,7 +35,7 @@ export function CalendarView({
   const [seed, setSeed] = useState(() => Math.random());
   const overlayRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
-  const days = useMemo(() => cookedByDay(recipes), [recipes]);
+  const days = useMemo(() => stampsByDay(recipes, show), [recipes, show]);
   const styleLook = cardLook(`calendar-${at.year}-${at.month}`);
   const thisMonth = now.getFullYear() === at.year && now.getMonth() === at.month;
   const goToday = () => {
@@ -70,7 +69,14 @@ export function CalendarView({
   const monthPrefix = `${at.year}-${String(at.month + 1).padStart(2, '0')}`;
   // a day with more than two dishes can't show them all: the dice deals a different pair
   const crowded = [...days.entries()].some(([d, list]) => d.startsWith(monthPrefix) && list.length > 2);
-  const cookedCount = [...days.entries()].filter(([d]) => d.startsWith(monthPrefix)).reduce((n, [, list]) => n + list.length, 0);
+  const inMonth = [...days.entries()].filter(([d]) => d.startsWith(monthPrefix)).flatMap(([, list]) => list);
+  const ateOutCount = inMonth.filter((s) => s.ateOut).length;
+  const cookedCount = inMonth.length - ateOutCount;
+  const anyAteOut = [...days.values()].some((list) => list.some((s) => s.ateOut));
+  const countText = [
+    cookedCount ? `${cookedCount} ${cookedCount === 1 ? 'dish' : 'dishes'} cooked` : '',
+    ateOutCount ? `${ateOutCount} ${ateOutCount === 1 ? 'dish' : 'dishes'} ate out` : '',
+  ].filter(Boolean).join('  ·  ') || 'nothing stamped yet';
 
   return (
     <>
@@ -96,7 +102,7 @@ export function CalendarView({
                 <button type="button" className="month-flip" aria-label="Next month" onClick={() => flip(1)}><PenIcon name="right" /></button>
               </header>
               <p className="calendar-count" aria-live="polite">
-                {cookedCount ? `${cookedCount} ${cookedCount === 1 ? 'dish' : 'dishes'} cooked` : 'nothing stamped yet'}
+                {countText}
                 {!thisMonth && (
                   <button type="button" className="today-link" onClick={goToday}>today</button>
                 )}
@@ -133,6 +139,15 @@ export function CalendarView({
                   </button>
                 )}
               </div>
+              {anyAteOut && (
+                <label className={`sort-option calendar-option ${look.ateOutBorder ? 'is-chosen' : ''}`}>
+                  <input type="checkbox" className="visually-hidden" checked={!!look.ateOutBorder} onChange={(e) => onAteOutBorder(e.target.checked)} />
+                  <span className="sort-label">
+                    zigzag edge for meals out
+                    {look.ateOutBorder && <PenCircle variant={6} />}
+                  </span>
+                </label>
+              )}
             </div>
           </div>
         </div>
