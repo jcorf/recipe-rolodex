@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
-import { CATEGORIES, type Draft, type Recipe, type Settings } from './types';
+import { CATEGORIES, GLOWS, type Draft, type Recipe, type Settings } from './types';
 import { Rolodex, buildItems, type RolodexItem } from './components/Rolodex';
-import { CardStack, FindSlip, SurpriseTag } from './components/DeskObjects';
+import { CardStack, FindSlip, SurpriseTag, type SurpriseOptions } from './components/DeskObjects';
 import { exportAll, importFiles, importMessage } from './exportRecipes';
 import { FruitMark } from './components/FruitMark';
 import { JamJar } from './components/JamJar';
 import { useDriftingLight } from './useDriftingLight';
 import { Letter } from './components/Letter';
+
+/** The cursor glow's two colours, as CSS variables on the glow layer. */
+function glowStyle(key?: string): React.CSSProperties {
+  const g = GLOWS.find((x) => x.key === key) ?? GLOWS[0];
+  return { '--glow-warm': g.warm, '--glow-cool': g.cool } as React.CSSProperties;
+}
 
 const categoryLabel = (key: string) => CATEGORIES.find((c) => c.key === key)?.label ?? '';
 
@@ -69,12 +75,23 @@ export default function App() {
     }
   };
 
-  /** The dice: jump to a random card with no stars yet, wherever it is filed. Returns false if there isn't one. */
-  const surprise = () => {
+  /** Cuisines in the box, for the surprise card's menu. */
+  const cuisines = useMemo(
+    () => [...new Set(recipes.map((r) => r.cuisine.trim().toLowerCase()).filter(Boolean))].sort(),
+    [recipes],
+  );
+
+  /** The dice: jump to a random card with no stars yet (or any card), by meal or cuisine if asked. Returns false if none fit. */
+  const surprise = ({ includeCooked, category, cuisine }: SurpriseOptions) => {
     const front = items[index];
-    const unmade = recipes.filter((r) => !r.rating && !(front?.kind === 'recipe' && front.recipe.id === r.id));
-    if (!unmade.length) return false;
-    focusById(unmade[Math.floor(Math.random() * unmade.length)].id, recipes);
+    const pool = recipes.filter((r) =>
+      (includeCooked || !r.rating) &&
+      (!category || (category === 'unsorted' ? !r.category : r.category === category)) &&
+      (!cuisine || r.cuisine.trim().toLowerCase() === cuisine) &&
+      !(front?.kind === 'recipe' && front.recipe.id === r.id && (recipes.length > 1)),
+    );
+    if (!pool.length) return false;
+    focusById(pool[Math.floor(Math.random() * pool.length)].id, recipes);
     return true;
   };
 
@@ -115,7 +132,7 @@ export default function App() {
 
   return (
     <div className="desk" data-recipe-font={settings?.recipeFont ?? 'hand'}>
-      <div ref={ambientRef} className="ambient" aria-hidden="true" />
+      <div ref={ambientRef} className="ambient" style={glowStyle(settings?.glowPalette)} aria-hidden="true" />
       <header className="desk-header">
         <h1 className="wordmark">
           <FruitMark glyph={settings?.titleFruit ?? 'h'} onChange={(titleFruit) => changeSettings({ titleFruit })} />
@@ -165,8 +182,9 @@ export default function App() {
             </div>
           </div>
         )}
-        {!loadError && recipes.length > 0 && <SurpriseTag onPick={surprise} />}
       </main>
+
+      {!loadError && recipes.length > 0 && <SurpriseTag onPick={surprise} cuisines={cuisines} />}
 
       <JamJar
         sortBy={sortBy}
@@ -178,6 +196,8 @@ export default function App() {
           if (patch.showFind === false) find(''); // putting find away clears it, so nothing stays hidden
           changeSettings(patch);
         }}
+        glowPalette={settings?.glowPalette ?? 'peach'}
+        onGlowPalette={(glowPalette) => changeSettings({ glowPalette })}
         onExportAll={() => exportAll(recipes)}
         onImportFiles={async (files) => {
           try {

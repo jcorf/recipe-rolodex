@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { Settings, SortBy } from '../types';
+import { GLOWS, type GlowKey, type Settings, type SortBy } from '../types';
 import { SORT_OPTIONS } from '../sorting';
 import { useDismiss } from '../useDismiss';
 import { PenCircle } from './ink';
@@ -44,7 +44,7 @@ function HelpNote() {
 }
 
 export function JamJar({
-  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, onImportFiles,
+  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, onImportFiles, glowPalette, onGlowPalette,
 }: {
   sortBy: SortBy;
   onSortBy: (sortBy: SortBy) => void;
@@ -57,6 +57,9 @@ export function JamJar({
   onExportAll: () => void;
   /** Add recipes from exported .json files; resolves to a line saying what happened. */
   onImportFiles: (files: File[]) => Promise<string>;
+  /** The colours the cursor glow drifts between. */
+  glowPalette: GlowKey;
+  onGlowPalette: (glow: GlowKey) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [help, setHelp] = useState(false);
@@ -74,12 +77,14 @@ export function JamJar({
             <button
               type="button"
               className="help-button"
-              aria-label={help ? 'Back to settings' : 'How this works'}
               aria-pressed={help}
               onClick={() => setHelp((h) => !h)}
             >
-              {help ? '×' : '?'}
-              <PenCircle variant={3} />
+              <span className="help-mark" aria-hidden="true">
+                {help ? '←' : '?'}
+                <PenCircle variant={3} />
+              </span>
+              <span>{help ? 'back to settings' : 'how this works'}</span>
             </button>
             {help ? <HelpNote /> : (<>
             <div role="radiogroup" aria-labelledby="sort-title">
@@ -134,6 +139,29 @@ export function JamJar({
                   </span>
                 </label>
               ))}
+            </div>
+            <div role="radiogroup" aria-labelledby="glow-title" className="setting-group">
+              <span id="glow-title" className="pop-title">cursor glow</span>
+              <div className="glow-swatches">
+                {GLOWS.map((g, i) => (
+                  <label key={g.key} className="glow-swatch" title={g.label}>
+                    <input
+                      type="radio"
+                      name="glow"
+                      className="visually-hidden"
+                      checked={g.key === glowPalette}
+                      onChange={() => onGlowPalette(g.key)}
+                    />
+                    <span
+                      className="glow-dot"
+                      style={{ background: `linear-gradient(135deg, rgb(${g.warm}) 30%, rgb(${g.cool}) 100%)` }}
+                    >
+                      {g.key === glowPalette && <PenCircle variant={i} />}
+                    </span>
+                    <span className="visually-hidden">{g.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
             <div className="setting-group">
               <span className="pop-title">the box</span>

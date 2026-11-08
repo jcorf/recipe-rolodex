@@ -14,6 +14,9 @@
   --enamel: #b5303a;         /* rolodex body, gingham, heart */
   --enamel-deep: #8a1f28;
 
+  --glow-warm: 247 215 199;   /* cursor glow colours: set from the glow setting */
+  --glow-cool: 218 228 210;
+
   --card-w: min(38rem, 88vw);
   --card-h: calc(var(--card-w) * 0.62);
 
@@ -64,14 +67,14 @@ body {
 .ambient::before { /* warm, on the cursor */
   width: 64vmax;
   height: 64vmax;
-  background: radial-gradient(closest-side, rgb(247 215 199 / 0.9), rgb(247 215 199 / 0.35) 55%, transparent);
+  background: radial-gradient(closest-side, rgb(var(--glow-warm) / 0.9), rgb(var(--glow-warm) / 0.35) 55%, transparent);
   transform: translate3d(calc(var(--mx, 0.5) * 100vw - 50%), calc(var(--my, 0.42) * 100vh - 50%), 0);
   opacity: var(--glow, 0.55);
 }
 .ambient::after { /* cool sage, drifting on the far side */
   width: 80vmax;
   height: 80vmax;
-  background: radial-gradient(closest-side, rgb(218 228 210 / 0.85), rgb(218 228 210 / 0.3) 55%, transparent);
+  background: radial-gradient(closest-side, rgb(var(--glow-cool) / 0.85), rgb(var(--glow-cool) / 0.3) 55%, transparent);
   transform: translate3d(calc((1 - var(--mx, 0.5)) * 100vw - 50%), calc((1 - var(--my, 0.42)) * 100vh - 50%), 0);
   opacity: calc(var(--glow, 0.55) * 0.85);
 }
@@ -173,22 +176,22 @@ button:disabled { cursor: default; }
 .desk-side.is-left { justify-content: flex-end; }
 .desk-side.is-right { justify-content: flex-start; }
 
-/* the dice: a kraft tag under the rolodex that jumps to something you haven't cooked */
+/* the dice: a kraft tag in the bottom-left corner (opposite the jar) that jumps to something you haven't cooked */
+.surprise {
+  position: fixed;
+  left: clamp(1rem, 3vw, 2.25rem);
+  bottom: 1.5rem;
+  z-index: 5;
+}
 .surprise-tag {
   position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 1.1rem 0.4rem 1.5rem;
-  border: none;
+  align-items: stretch;
   border-radius: 6px 10px 10px 6px;
   background: var(--kraft-light);
   color: var(--ink);
-  font-family: var(--script);
-  font-size: 1.1rem;
-  line-height: 1.5;
   box-shadow: 0 1px 1px rgb(70 50 30 / 0.25), 0 3px 8px rgb(70 50 30 / 0.15);
-  rotate: -1.5deg;
+  rotate: 1.5deg;
   transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
 }
 .surprise-tag::before { /* punched hole, like the card tags */
@@ -201,16 +204,45 @@ button:disabled { cursor: default; }
   margin-top: -0.2rem;
   border-radius: 50%;
   background: #efe1d0;
-  box-shadow: inset 0 1px 1px rgb(60 40 20 / 0.45);
+  box-shadow: inset 0 1px 1px rgb(60 40 30 / 0.45);
 }
-.surprise-tag .pen-icon { width: 1.3rem; height: 1.3rem; transition: rotate 0.4s var(--ease-out); }
 .surprise-tag:hover,
-.surprise-tag:focus-visible {
-  transform: translateY(-2px) rotate(2deg);
+.surprise-tag:focus-within {
+  transform: translateY(-2px) rotate(-1.5deg);
   box-shadow: 0 2px 2px rgb(70 50 30 / 0.22), 0 6px 14px rgb(70 50 30 / 0.18);
 }
-.surprise-tag:hover .pen-icon,
-.surprise-tag:focus-visible .pen-icon { rotate: 180deg; }
+.surprise-go,
+.surprise-more {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: none;
+  color: inherit;
+}
+.surprise-go {
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem 0.4rem 1.5rem;
+  font-family: var(--script);
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+.surprise-more { padding: 0 0.7rem 0 0.3rem; border-left: 1px dashed rgb(61 60 64 / 0.3); margin: 0.35rem 0; }
+.surprise-more .pen-icon { width: 1.1rem; height: 1.1rem; transition: rotate 0.25s var(--ease-out); }
+.surprise-more[aria-expanded='true'] .pen-icon { rotate: 180deg; }
+.surprise-go .pen-icon { width: 1.3rem; height: 1.3rem; transition: rotate 0.4s var(--ease-out); }
+.surprise-go:hover .pen-icon,
+.surprise-go:focus-visible .pen-icon { rotate: 180deg; }
+.surprise-pop { left: 0; bottom: calc(100% + 0.6rem); width: 13.5rem; rotate: 1deg; }
+.surprise-field {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+  font-family: var(--script);
+  font-size: 1.1rem;
+}
+.surprise-field .ink-input { flex: 1; max-width: 8rem; font-family: var(--sans); font-size: 0.9rem; }
 
 /* cotton for small desk objects: the same stock, deckle and per-object grain as the cards */
 .stack-card,
@@ -1371,28 +1403,51 @@ button:disabled { cursor: default; }
   color: var(--enamel-deep);
 }
 
-/* the "?" in the corner of the settings card, and the note it opens */
+/* "? how this works": a labelled row at the top of the settings card, and the note it opens */
 .help-button {
-  position: absolute;
-  top: 0.55rem;
-  right: 0.8rem;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 1.7rem;
-  height: 1.7rem;
-  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin: 0 0 0.5rem;
+  padding: 0.1rem 0;
   border: none;
   background: none;
+  text-align: left;
   font-family: var(--script);
-  font-size: 1.2rem;
-  line-height: 1;
+  font-size: 1.1rem;
+  line-height: 1.6;
   color: var(--ink);
+}
+.help-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  font-size: 1.25rem;
   transition: transform 0.2s var(--ease-out);
 }
-.help-button .pen-circle { inset: 0; width: 100%; height: 100%; }
-.help-button:hover,
-.help-button:focus-visible { transform: rotate(-8deg) scale(1.1); }
+.help-mark .pen-circle { inset: 0; width: 100%; height: 100%; }
+.help-button:hover .help-mark,
+.help-button:focus-visible .help-mark { transform: rotate(-8deg) scale(1.1); }
+
+/* cursor glow swatches */
+.glow-swatches { display: flex; flex-wrap: wrap; gap: 0.5rem 0.55rem; padding: 0.2rem 0.15rem 0; }
+.glow-swatch { cursor: pointer; }
+.glow-dot {
+  position: relative;
+  display: block;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgb(61 60 64 / 0.18);
+  transition: transform 0.2s var(--ease-out);
+}
+.glow-dot .pen-circle { inset: -0.2rem; width: calc(100% + 0.4rem); height: calc(100% + 0.4rem); }
+.glow-swatch:hover .glow-dot,
+.glow-swatch:has(:focus-visible) .glow-dot { transform: scale(1.15) rotate(-6deg); }
 .jar-pop.is-help { width: 19rem; }
 .help-note { padding-top: 0.2rem; font-size: 0.85rem; line-height: 1.45; }
 .help-note .pop-title + ul,

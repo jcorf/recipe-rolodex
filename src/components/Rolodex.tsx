@@ -9,6 +9,9 @@ import { dividerFruit, Fruit, FruitPicker } from './FruitMark';
 
 const BEHIND = 6; // cards visible behind the front one
 
+/** Fruits belong to the meal dividers only (and "unsorted"); cuisines, times and letters are just words. */
+const isMeal = (group: string) => group === 'unsorted' || CATEGORIES.some((c) => c.key === group);
+
 const mod = (n: number, m: number) => ((n % m) + m) % m;
 
 export type RolodexItem =
@@ -64,6 +67,10 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
   const count = items.length;
   // The box is a loop: past the last card comes the first, and back from the first is the last.
   const go = (delta: number) => count > 1 && onIndex(mod(index + delta, count));
+
+  // Take keyboard focus on load, so the arrow keys work before the first click
+  // (otherwise focus can still be in the address bar).
+  useEffect(() => { stageRef.current?.focus({ preventScroll: true }); }, []);
 
   // Wheel / trackpad flips one card per gesture tick.
   useEffect(() => {
@@ -177,7 +184,7 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
                         </span>
                       ) : (
                         <>
-                          {!item.plain && (d === 0 ? (
+                          {isMeal(item.group) && (d === 0 ? (
                             <FruitPicker
                               glyph={dividerFruit(item.group, item.index, dividerFruits)}
                               onChange={(g) => onDividerFruit(item.group, g)}
