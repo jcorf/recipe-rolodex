@@ -29,6 +29,17 @@ export function exportOne(recipe: Recipe) {
   download(`${slug(recipe.title)}.json`, recipe);
 }
 
+export type ExportFormat = 'json' | 'md';
+
+const FORMAT_KEY = 'export-format';
+/** The format exports use (.json to back up and add back, .md to read or print); remembered in this browser. */
+export function loadExportFormat(): ExportFormat {
+  try { return localStorage.getItem(FORMAT_KEY) === 'md' ? 'md' : 'json'; } catch { return 'json'; }
+}
+export function saveExportFormat(format: ExportFormat) {
+  try { localStorage.setItem(FORMAT_KEY, format); } catch { /* private window: fine for this visit */ }
+}
+
 export interface ImportSummary {
   added: Recipe[];
   /** Cards already in the box. */

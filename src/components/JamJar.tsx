@@ -4,6 +4,7 @@ import { SORT_OPTIONS } from '../sorting';
 import { useDismiss } from '../useDismiss';
 import { PenCircle } from './ink';
 import { PenIcon } from './PenIcons';
+import type { ExportFormat } from '../exportRecipes';
 
 /**
  * The strawberry jam jar in the desk's bottom-right corner: the way into settings.
@@ -33,7 +34,7 @@ function HelpNote() {
         <li><b>find</b> with <kbd>/</kbd>. it looks through names, meals, cuisines and ingredients.</li>
         <li><b>surprise me</b> picks something you haven’t cooked yet.</li>
         <li>click a <b>fruit</b> to swap it for another.</li>
-        <li><b>the box</b>: save a copy of every recipe (.json, or readable text as .md), or add some back from .json files.</li>
+        <li><b>the box</b>: save a copy of every recipe (and any open card) as .json to add back later, or .md to read or print.</li>
       </ul>
       <span className="pop-title">why I made it</span>
       <p>
@@ -45,7 +46,7 @@ function HelpNote() {
 }
 
 export function JamJar({
-  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, onExportMarkdown, onImportFiles, glowPalette, onGlowPalette,
+  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, exportFormat, onExportFormat, onImportFiles, glowPalette, onGlowPalette,
 }: {
   sortBy: SortBy;
   onSortBy: (sortBy: SortBy) => void;
@@ -54,10 +55,11 @@ export function JamJar({
   /** Which desk objects are out (circled) or put away. */
   desk: Pick<Settings, 'showNewCard' | 'showFind'>;
   onDesk: (patch: Partial<Pick<Settings, 'showNewCard' | 'showFind'>>) => void;
-  /** Save every recipe as a .json file. */
+  /** Save every recipe in the chosen format. */
   onExportAll: () => void;
-  /** Save every recipe as one .md file. */
-  onExportMarkdown: () => void;
+  /** .json backs up (and can be added back); .md is readable text. Cards use the same choice. */
+  exportFormat: ExportFormat;
+  onExportFormat: (format: ExportFormat) => void;
   /** Add recipes from exported .json files; resolves to a line saying what happened. */
   onImportFiles: (files: File[]) => Promise<string>;
   /** The colours the cursor glow drifts between. */
@@ -170,12 +172,26 @@ export function JamJar({
               <span className="pop-title">the box</span>
               <button type="button" className="sort-option file-option" onClick={onExportAll}>
                 <PenIcon name="export" />
-                <span className="sort-label">save a copy <small>.json</small></span>
+                <span className="sort-label">save a copy</span>
               </button>
-              <button type="button" className="sort-option file-option" onClick={onExportMarkdown}>
-                <PenIcon name="export" />
-                <span className="sort-label">save as text <small>.md</small></span>
-              </button>
+              <div role="radiogroup" aria-label="Save copies as" className="format-choice">
+                <span>as</span>
+                {([['json', '.json', 'to add back later'], ['md', '.md', 'to read or print']] as const).map(([key, label, hint], i) => (
+                  <label key={key} className="format-option" title={hint}>
+                    <input
+                      type="radio"
+                      name="export-format"
+                      className="visually-hidden"
+                      checked={exportFormat === key}
+                      onChange={() => onExportFormat(key)}
+                    />
+                    <span className="sort-label">
+                      {label}
+                      {exportFormat === key && <PenCircle variant={i + 1} />}
+                    </span>
+                  </label>
+                ))}
+              </div>
               <button type="button" className="sort-option file-option" onClick={() => fileRef.current?.click()}>
                 <PenIcon name="import" />
                 <span className="sort-label">add from files <small>.json</small></span>

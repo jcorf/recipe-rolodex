@@ -1083,6 +1083,24 @@ button:disabled { cursor: default; }
   box-shadow: 0 1px 1px rgb(70 50 30 / 0.25), 0 3px 8px rgb(70 50 30 / 0.15);
   transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out), background 0.2s;
 }
+/* the tags are cut from the same cotton stock as the cards: a grain layer under the icon */
+.action-tag,
+.surprise-tag { isolation: isolate; }
+.action-tag::after,
+.surprise-tag::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: url('/cotton-2.webp') 0 0 / 256px 256px;
+  opacity: 1;
+}
+.action-tag:nth-child(2)::after { background-image: url('/cotton-4.webp'); background-position: 90px 40px; }
+.action-tag:nth-child(3)::after { background-image: url('/cotton-1.webp'); background-position: 30px 120px; }
+.action-tag.is-primary::after,
+.action-tag.is-danger::after { opacity: 0.5; }
 .action-tag::before { /* punched hole at the top of the tag */
   content: '';
   position: absolute;
@@ -1415,6 +1433,11 @@ button:disabled { cursor: default; }
   line-height: 1.55;
 }
 .file-option .sort-label { white-space: nowrap; }
+.format-choice { display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 0.1rem 1.6rem; font-family: var(--script); font-size: 0.95rem; color: var(--ink-soft); }
+.format-option { cursor: pointer; font-family: var(--sans); font-size: 0.85rem; color: var(--ink); }
+.format-option .sort-label { padding: 0 0.3em; }
+.format-option:hover .sort-label,
+.format-option:has(:focus-visible) .sort-label { transform: none; color: var(--enamel-deep); }
 .file-option .pen-icon { flex: none; width: 1.15rem; height: 1.15rem; color: var(--ink-soft); transition: translate 0.2s var(--ease-out), color 0.2s; }
 .file-option:hover .pen-icon,
 .file-option:focus-visible .pen-icon { color: var(--enamel-deep); translate: 0 -0.1rem; }

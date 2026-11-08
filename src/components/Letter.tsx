@@ -4,7 +4,6 @@ import { servesLabel, splitAmount, stepText } from '../recipeText';
 import { cardLook, InkFrame, InkRule } from './ink';
 import { HOLDER } from './inkPaths';
 import { PenIcon, type PenIconName } from './PenIcons';
-import { exportOne, exportOneMarkdown } from '../exportRecipes';
 import { GinghamBow, PatchHeart } from './Stickers';
 import { StarRating } from './StarRating';
 import { InkSelect } from './InkSelect';
@@ -24,6 +23,9 @@ interface Props {
   onImport?: (url: string) => Promise<{ draft: Draft; notice: string }>;
   onDelete: () => Promise<void>;
   onClose: () => void;
+  /** Saved cards only: save this card in the chosen export format. */
+  onExport?: () => void;
+  exportLabel?: string;
 }
 
 interface Form {
@@ -95,7 +97,7 @@ function ActionTag({
 
 const isLink = (text: string) => /^https?:\/\/\S+$/i.test(text.trim());
 
-export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onClose }: Props) {
+export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onClose, onExport, exportLabel = 'export card' }: Props) {
   const [editing, setEditing] = useState(isNew);
   const [form, setForm] = useState<Form>(() => toForm(recipe));
   const [rating, setRating] = useState(recipe.rating ?? 0);
@@ -375,8 +377,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
         {!editing && !confirmTear && (
           <>
             <ActionTag icon="edit" label="edit card" onClick={() => setEditing(true)} />
-            {!isNew && <ActionTag icon="export" label="export card (.json)" onClick={() => exportOne(recipe as Recipe)} />}
-            {!isNew && <ActionTag icon="export" label="export card (.md)" onClick={() => exportOneMarkdown(recipe as Recipe)} />}
+            {!isNew && onExport && <ActionTag icon="export" label={exportLabel} onClick={onExport} />}
             {!isNew && (
               <ActionTag icon="tear" label="tear up card" tone="quiet" onClick={() => setConfirmTear(true)} />
             )}
