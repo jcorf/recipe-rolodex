@@ -10,6 +10,7 @@ import {
   loadExportFormat, saveExportFormat, type ExportFormat,
 } from './exportRecipes';
 import { FruitMark } from './components/FruitMark';
+import { useDeskSlide } from './useDeskSlide';
 import { JamJar } from './components/JamJar';
 import { useDriftingLight } from './useDriftingLight';
 import { Letter } from './components/Letter';
@@ -190,6 +191,10 @@ export default function App() {
 
   const openRecipe = open?.kind === 'saved' ? recipes.find((r) => r.id === open.id) : undefined;
 
+  // the stack and the find slip slide over when one of them is put away or brought back
+  const deskRowRef = useRef<HTMLDivElement>(null);
+  useDeskSlide(deskRowRef, `${settings?.showNewCard ?? true}-${settings?.showFind ?? true}`);
+
   return (
     <div className="desk" data-recipe-font={settings?.recipeFont ?? 'hand'}>
       <div ref={ambientRef} className="ambient" style={glowStyle(settings?.glowPalette)} aria-hidden="true" />
@@ -204,7 +209,7 @@ export default function App() {
         {loadError ? (
           <p className="load-error" role="alert">{loadError}</p>
         ) : (
-          <div className="desk-row">
+          <div ref={deskRowRef} className="desk-row">
             <div className="desk-side is-left">
               {(settings?.showNewCard ?? true) && <CardStack onAdd={() => setOpen({ kind: 'draft', draft: newDraft })} />}
             </div>

@@ -137,8 +137,8 @@ export function VisitPop({
             className="ink-input"
             value={dish}
             onChange={(e) => setDish(e.target.value)}
-            placeholder="what did you have?"
-            aria-label="What you had"
+            placeholder="what did you have? (optional)"
+            aria-label="What you had (optional)"
             maxLength={120}
           />
           <button type="button" className="visit-photo" onClick={() => fileRef.current?.click()} disabled={adding} aria-label={photo ? 'Change the photo of the dish' : 'Add a photo of the dish'}>

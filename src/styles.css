@@ -372,10 +372,14 @@ button:disabled { cursor: default; }
   .desk-row {
     /* two equal halves that fill the row, so the rolodex below keeps its full width whether the
        blank-card stack and the find slip are out or put away (auto columns shrank to nothing) */
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "stack find" "box box";
-    row-gap: 0.5rem;
+    /* the stack and the slip sit side by side in the middle; with one put away, the other is centred */
+    grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 1fr);
+    grid-template-areas: ". stack find ." "box box box box";
+    column-gap: 0;
+    row-gap: 1.5rem; /* a little desk between them and the card tabs */
   }
+  .desk-side.is-left:not(:empty) { padding-right: 0.6rem; }
+  .desk-side.is-right:not(:empty) { padding-left: 0.6rem; }
   .desk-side { padding-top: 0.5rem; }
   .desk-side.is-left { grid-area: stack; }
   .desk-side.is-right { grid-area: find; }
@@ -384,7 +388,6 @@ button:disabled { cursor: default; }
   .find-slip { width: 11rem; }
 }
 @media (max-width: 40rem) {
-  .desk-row { column-gap: 1rem; }
   .card-stack { width: 6.5rem; height: 4.2rem; }
   .stack-label { font-size: 1rem; }
   .find-slip { width: 9.5rem; padding: 0.55rem 0.9rem 0.6rem; }
@@ -424,7 +427,7 @@ button:disabled { cursor: default; }
     bottom: 4.9rem;
     translate: -50% 0;
     z-index: 4; /* under the surprise card and the settings, which open over them */
-    opacity: 0.8;
+    /* no opacity here: it would cut the buttons' glass off from what's behind it */
     pointer-events: none; /* only the buttons take taps, so the gap between them doesn't block the card behind */
   }
   .rolodex-pager button { pointer-events: auto; }
@@ -436,12 +439,18 @@ button:disabled { cursor: default; }
     padding: 0;
     border: none;
     border-radius: 50%;
-    background: rgb(255 254 250 / 0.55);
+    background: rgb(250 248 242 / 0.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.5);
+    backdrop-filter: blur(12px) saturate(1.5);
+    border: 1px solid rgb(255 255 255 / 0.55);
     color: var(--ink);
-    box-shadow: 0 1px 4px rgb(60 55 50 / 0.18);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.75),
+      inset 0 -1px 1px rgb(120 100 80 / 0.08),
+      0 3px 10px rgb(60 55 50 / 0.14);
     transition: transform 0.2s var(--ease-out), background-color 0.2s;
   }
-  .rolodex-pager button:active { transform: scale(0.92); background: rgb(255 254 250 / 0.9); }
+  .rolodex-pager button:active { transform: scale(0.92); background: rgb(250 248 242 / 0.75); }
   .rolodex-pager button:disabled { opacity: 0.35; }
   .rolodex-pager .pen-icon { width: 1.5rem; height: 1.5rem; }
 }
@@ -1310,8 +1319,15 @@ button:disabled { cursor: default; }
     max-width: calc(100vw - 1rem);
     padding: 0.55rem 1.35rem; /* room at each rounded end, so the first and last tags sit inside the bar */
     border-radius: 999px;
-    background: rgb(245 243 238 / 0.94);
-    box-shadow: 0 4px 16px rgb(60 45 30 / 0.18);
+    /* frosted glass in the desk's warm white: the card shows softly through, a light catches the top edge */
+    background: rgb(250 248 242 / 0.42);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    backdrop-filter: blur(14px) saturate(1.5);
+    border: 1px solid rgb(255 255 255 / 0.55);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.75),
+      inset 0 -1px 1px rgb(120 100 80 / 0.08),
+      0 6px 20px rgb(60 45 30 / 0.16);
   }
   .tear-confirm { flex-direction: row; align-items: center; }
   .action-label { left: 50%; top: auto; bottom: calc(100% + 0.55rem); translate: -50% 0.3rem; }
@@ -1652,6 +1668,8 @@ button:disabled { cursor: default; }
   border-bottom: 1px dashed rgb(163 157 150 / 0.6);
 }
 .month-grid td.is-blank { border-bottom-color: transparent; }
+/* the first week is ruled across the top too, so every day sits in a lined box like the rest of the month */
+.month-grid tbody tr:first-child td:not(.is-blank) { border-top: 1px dashed rgb(163 157 150 / 0.6); }
 .day-cell {
   position: relative;
   display: block;
@@ -1862,14 +1880,14 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 /* a restaurant's tab is a recipe tab with a small pen dot on it */
 .tab-dot {
   position: absolute;
-  top: 0.13rem; /* centred on the part of the tab that shows above the card */
+  top: 0.22rem; /* centred on the part of the tab that shows above the card */
   left: 50%;
   translate: -50% 0;
-  width: 0.4rem;
-  height: 0.4rem;
+  width: 0.22rem;
+  height: 0.22rem;
   border-radius: 50%;
   background: var(--ink);
-  opacity: 0.8;
+  opacity: 0.6;
 }
 .card-thoughts { margin: 0; color: var(--ink); white-space: pre-line; } /* takes the recipe writing of its column */
 
@@ -1879,6 +1897,8 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 .address-line { display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.4rem; }
 .address-line .ink-input { flex: 1; font-size: 1rem; font-weight: 300; }
 .card-address { font-size: 0.78rem; }
+/* a price in print, slightly smaller than the pen around it */
+.meta-price { font-family: var(--sans); font-size: 0.9em; letter-spacing: 0.02em; }
 .kind-toggle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.9rem; margin: 0 0 0.5rem; font-family: var(--script); font-size: 1rem; color: var(--ink-soft); }
 .kind-toggle .sort-option { display: inline-block; padding: 0 0.1rem; color: var(--ink); line-height: 1.5; }
 

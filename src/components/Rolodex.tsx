@@ -3,7 +3,7 @@ import { CATEGORIES, type Recipe, type SortBy } from '../types';
 import { groupRecipes } from '../sorting';
 import { Star, starFill } from './Stickers';
 import { StarRating } from './StarRating';
-import { cardLook, CircledCount, InkFrame, InkRule, TabEdge } from './ink';
+import { cardLook, CircledCount, InkFrame, InkRule, MetaLine, TabEdge } from './ink';
 import { ratingLabel, servesLabel, splitAmount, stepText } from '../recipeText';
 import { shortDay } from '../dates';
 import { PenIcon } from './PenIcons';
@@ -279,7 +279,7 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
                   <InkFrame variant={look.frame} />
                   <header className={`card-header ${meta.length ? 'has-meta' : ''}`}>
                     <h2 className="card-title">{recipe.title}</h2>
-                    {meta.length > 0 && <p className="card-meta">{meta.join('  ·  ')}</p>}
+                    {meta.length > 0 && <MetaLine className="card-meta" items={meta} price={out ? recipe.price : undefined} />}
                     {out && recipe.address && <p className="card-meta card-address">{recipe.address}</p>}
                     {d === 0 ? (
                       // rate right from the rolodex: the front card's stars take clicks (halves too)

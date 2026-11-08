@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CATEGORIES, PRICES, VENUES, type Category, type Draft, type Price, type Recipe, type Venue, type Visit } from '../types';
 import { shortDay } from '../dates';
 import { servesLabel, splitAmount, stepText } from '../recipeText';
-import { cardLook, InkFrame, InkRule, PenCircle } from './ink';
+import { cardLook, InkFrame, InkRule, MetaLine, PenCircle } from './ink';
 import { HOLDER } from './inkPaths';
 import { ActionTag, FORM_ID } from './ActionTag';
 import { GinghamBow, PatchHeart } from './Stickers';
@@ -384,7 +384,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
                   </div>
                 ) : (
                   <>
-                    {meta.length > 0 && <p className="open-meta">{meta.join('  ·  ')}</p>}
+                    {meta.length > 0 && <MetaLine className="open-meta" items={meta} price={isOut ? shown.price : undefined} />}
                     {isOut && shown.address && <p className="open-address">{shown.address}</p>}
                   </>
                 )}
