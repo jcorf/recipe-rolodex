@@ -20,8 +20,9 @@ interface PhotoRecord extends PhotoFiles {
 const byAdded = (a: Recipe, b: Recipe) => a.createdAt.localeCompare(b.createdAt);
 
 /**
- * While developing, the cards used to live in data/recipes.json behind the old server. If it's
- * still running the first time, bring those cards and settings over so nothing is left behind.
+ * While developing, the cards used to live in data/recipes.json (behind the old Express server).
+ * `npm run dev` still hands those files out read-only, so the first visit brings the cards and
+ * settings over and nothing is left behind.
  */
 async function fromOldServer(): Promise<{ recipes: Recipe[]; settings?: Settings } | null> {
   if (!import.meta.env.DEV) return null;
