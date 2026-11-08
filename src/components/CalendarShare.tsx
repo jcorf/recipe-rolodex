@@ -104,6 +104,9 @@ export function CalendarShare({
           <span className="share-date">{rangeLabel(weekStart, addDays(weekStart, 6))}</span>
           <Step dir="right" label="Start one day later" disabled={weekStart >= lastStart} onClick={() => moveWeek(1)} />
           <Step dir="right" far label="Start a week later" disabled={weekStart >= lastStart} onClick={() => moveWeek(7)} />
+          <button type="button" className="today-link" disabled={weekStart === lastStart} onClick={() => setWeekStart(lastStart)}>
+            today
+          </button>
         </div>
       )}
       {page === 'day' && (
@@ -114,6 +117,9 @@ export function CalendarShare({
           <span className="share-date">{weekdayName(day).slice(0, 3)} {longDate(day).replace(/, \d{4}$/, '')}</span>
           <Step dir="right" label="One day later" disabled={day >= today} onClick={() => moveDay(1)} />
           <Step dir="right" far label="A week later" disabled={day >= today} onClick={() => moveDay(7)} />
+          <button type="button" className="today-link" disabled={day === today} onClick={() => setDay(today)}>
+            today
+          </button>
         </div>
       )}
     </>

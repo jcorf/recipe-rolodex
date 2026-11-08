@@ -35,7 +35,7 @@ function HelpNote() {
         <li><b>find</b>: looks through names, meals, cuisines and ingredients.</li>
         <li><b>surprise me</b> picks something you haven’t cooked yet. its little arrow narrows it by meal or cuisine.</li>
         <li><b>cooked it?</b> open a card and press the stamp tag, then tap the day. tap a stamped day again to lift the stamp off.</li>
-        <li><b>the spoon</b> (top right) opens the calendar: a stamp of each dish on the day you cooked it. flip months with the arrows or ← →, and tap a stamp to open the recipe. under the month, choose plain, grainy or faded stamps; the dice deals new ones on days with more than two.</li>
+        <li><b>the spoon</b> (top right) opens the calendar: a stamp of each dish on the day you cooked it. flip months with the arrows or ← →, tap a stamp to open the recipe, and press t (or tap “today”) to come back to this month. under the month, choose plain, grainy or faded stamps; the dice deals new ones on days with more than two.</li>
         <li><b>share</b> a card as a picture to send, copy or save. from the calendar you can share the month, any seven days in a row (step the start day with the arrows; the double arrows jump a week), or one day with all its stamps scattered together.</li>
         <li>click the <b>name at the top</b> to rename your box.</li>
         <li>click a <b>fruit</b> to swap it for another.</li>
