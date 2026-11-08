@@ -92,7 +92,16 @@ export default function App() {
   // a restaurant-only sort (price, location…) can't stay on once restaurants are off
   const chosenSort = settings?.sortBy ?? 'category';
   const sortBy = sortOptionsFor(kinds).some((o) => o.key === chosenSort) ? chosenSort : fallbackSort(kinds);
-  const items = useMemo(() => buildItems(shown, sortBy), [shown, sortBy]);
+  const sortedItems = useMemo(() => buildItems(shown, sortBy), [shown, sortBy]);
+  // Just after a rating, the box keeps its old order for a moment (the stars fill in, the confetti
+  // falls), then the card is filed in its new place and the box flips there with it.
+  const [held, setHeld] = useState<RolodexItem[] | null>(null);
+  const items = useMemo(() => {
+    if (!held) return sortedItems;
+    const byId = new Map(shown.map((r) => [r.id, r]));
+    return held.flatMap<RolodexItem>((it) => (it.kind === 'recipe' ? (byId.has(it.recipe.id) ? [{ ...it, recipe: byId.get(it.recipe.id)! }] : []) : [it]));
+  }, [held, sortedItems, shown]);
+  const releaseHeld = useRef<number>();
 
   // Settings change on the page at once and are saved in the background.
   const changeSettings = (patch: Partial<Settings>) => {
@@ -234,7 +243,12 @@ export default function App() {
               }
               keyboard={!open && !calendarOpen && !share}
               onRate={(recipe, rating) => {
-                follow.current = recipe.id;
+                setHeld((h) => h ?? items);
+                window.clearTimeout(releaseHeld.current);
+                releaseHeld.current = window.setTimeout(() => {
+                  follow.current = recipe.id;
+                  setHeld(null);
+                }, 1100);
                 setRecipes((list) => list.map((r) => (r.id === recipe.id ? { ...r, rating } : r)));
                 api.update(recipe.id, { rating }).catch(() => {
                   follow.current = recipe.id;
@@ -288,6 +302,20 @@ export default function App() {
         exportFormat={exportFormat}
         onExportFormat={(format) => { setExportFormat(format); saveExportFormat(format); }}
         onExportAll={() => exportCards(recipes, exportFormat)}
+        counts={{ recipes: recipes.filter((r) => r.kind !== 'restaurant').length, restaurants: recipes.filter((r) => r.kind === 'restaurant').length }}
+        onClear={async (kind) => {
+          const gone = await api.removeAll(kind);
+          setRecipes((list) => list.filter((r) => !(kind === 'both' || (kind === 'restaurants') === (r.kind === 'restaurant'))));
+          setIndex(0);
+          return `${gone} ${gone === 1 ? 'card' : 'cards'} thrown away.`;
+        }}
+        onReseed={async () => {
+          const fresh = await api.reseed();
+          const ids = new Set(fresh.map((r) => r.id));
+          setRecipes((list) => [...list.filter((r) => !ids.has(r.id)), ...fresh]);
+          setIndex(0);
+          return `${fresh.length} sample cards are back in the box, unrated.`;
+        }}
         onImportFiles={async (files) => {
           try {
             const summary = await importFiles(files, api.importRecipes);

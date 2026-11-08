@@ -1588,6 +1588,34 @@ button:disabled { cursor: default; }
   color: var(--enamel-deep);
 }
 
+.file-option:disabled { opacity: 0.45; cursor: default; }
+/* emptying the box: a short ladder of questions, each one a step further, the last in red */
+.clear-out { margin-top: 0.15rem; }
+.clear-out .file-option .sort-label { white-space: normal; line-height: 1.3; }
+.file-option.is-trash:hover .pen-icon,
+.file-option.is-trash:focus-visible .pen-icon { color: var(--enamel-deep); }
+.clear-step { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; margin: 0.35rem 0 0.2rem 1.6rem; }
+.clear-question { font-family: var(--script); font-size: 1rem; line-height: 1.4; color: var(--enamel-deep); }
+.clear-buttons { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
+.clear-choice {
+  padding: 0;
+  border: none;
+  border-bottom: 1px dashed transparent;
+  background: none;
+  font-family: var(--script);
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.clear-choice small { font-family: var(--sans); font-size: 0.75rem; color: var(--ink-soft); }
+.clear-choice:hover:not(:disabled),
+.clear-choice:focus-visible { border-bottom-color: var(--pencil); outline: none; }
+.clear-choice:disabled { opacity: 0.4; cursor: default; }
+.clear-choice.is-danger { color: var(--enamel-deep); }
+.clear-choice.is-final { padding: 0.1rem 0.7rem; border-radius: 3px; background: var(--enamel-deep); color: #fff4ea; }
+.clear-choice.is-final:hover:not(:disabled),
+.clear-choice.is-final:focus-visible { background: var(--enamel); border-bottom-color: transparent; }
+
 /* "? how this works": a labelled row at the top of the settings card, and the note it opens */
 .help-button {
   display: flex;
@@ -1951,8 +1979,27 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 .visit-photo:hover { rotate: -2deg; }
 .visit-photo img { width: 100%; height: 100%; object-fit: cover; }
 .visit-photo .pen-icon { width: 1.2rem; height: 1.2rem; }
-.visit-list { margin: 0.5rem 0 0; padding: 0; list-style: none; max-height: 8rem; overflow-y: auto; }
-.visit-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0; font-family: var(--hand); font-size: 1.1rem; line-height: 1.1; }
+/* the two steps of adding a meal, each with a small pen-circled number */
+.visit-step { display: flex; align-items: center; gap: 0.45rem; margin: 0.55rem 0 0.15rem; font-family: var(--script); font-size: 0.95rem; color: var(--ink-soft); }
+.visit-step-num {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid var(--ink-soft);
+  border-radius: 50% 46% 52% 48%;
+  font-family: var(--hand);
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--ink);
+}
+/* the meals already had here: their own part of the card, below a drawn line */
+.visit-meals { margin-top: 0.7rem; padding-top: 0.55rem; border-top: 1px solid rgb(61 60 64 / 0.35); }
+.visit-meals-title { margin: 0; font-family: var(--script); font-size: 1rem; font-weight: 400; color: var(--ink); }
+.visit-list { margin: 0.3rem 0 0; padding: 0; list-style: none; max-height: 11rem; overflow-y: auto; }
+.visit-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; font-family: var(--hand); font-size: 1.1rem; line-height: 1.1; }
+.visit-list li + li { border-top: 1px dashed rgb(163 157 150 / 0.5); }
 .visit-date {
   flex: none;
   width: 3.4rem;

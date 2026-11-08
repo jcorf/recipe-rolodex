@@ -143,13 +143,15 @@ export function VisitPop({
     <div ref={innerRef} className="pop cooked-pop visit-pop" role="dialog" aria-label="When did you eat here?">
       <div className="pop-card">
         <span className="pop-title">when did you eat here?</span>
+        {/* adding a meal is two steps, numbered so the order is plain: write it, then tap its day */}
+        <p className="visit-step"><span className="visit-step-num" aria-hidden="true">1</span> what did you have?</p>
         <div className="visit-what">
           <input
             ref={dishRef}
             className={`ink-input ${dish.trim() ? '' : 'is-needed'} ${asking ? 'is-asking' : ''}`}
             value={dish}
             onChange={(e) => { setDish(e.target.value); setAsking(false); }}
-            placeholder="what did you have?"
+            placeholder="write the dish here"
             aria-label="What you had"
             aria-describedby={asking ? 'visit-ask' : undefined}
             required
@@ -162,6 +164,7 @@ export function VisitPop({
         </div>
         {error && <p className="letter-error" role="alert">{error}</p>}
         {asking && <p id="visit-ask" className="visit-moving" role="status">write what you had first, then tap the day</p>}
+        <p className="visit-step"><span className="visit-step-num" aria-hidden="true">2</span> tap the day you ate it</p>
         <PopCalendar start={start} days={days} look={look} seed={seed} onDay={eat} />
         {moving !== null && (
           <p className="visit-moving" role="status">
@@ -169,25 +172,27 @@ export function VisitPop({
             <button type="button" className="today-link" onClick={() => setMoving(null)}>never mind</button>
           </p>
         )}
-        {sorted.length > 0 && (
-          <ul className="visit-list">
-            {sorted.map(({ v, i }) => (
-              <VisitRow
-                key={`${v.date}-${i}`}
-                visit={v}
-                moving={moving === i}
-                onDish={(dish) => onChange(visits.map((x, n) => (n === i ? { ...x, dish } : x)))}
-                onMove={() => setMoving((m) => (m === i ? null : i))}
-                onPhoto={() => { setPhotoFor(i); rowFileRef.current?.click(); }}
-                onRemove={() => { setMoving(null); onChange(visits.filter((_, n) => n !== i)); }}
-              />
-            ))}
-          </ul>
-        )}
+        <section className="visit-meals" aria-label="Meals here">
+          <h3 className="visit-meals-title" aria-live="polite">
+            {visits.length ? `meals here · ${visits.length}` : 'no meals here yet'}
+          </h3>
+          {sorted.length > 0 && (
+            <ul className="visit-list">
+              {sorted.map(({ v, i }) => (
+                <VisitRow
+                  key={`${v.date}-${i}`}
+                  visit={v}
+                  moving={moving === i}
+                  onDish={(dish) => onChange(visits.map((x, n) => (n === i ? { ...x, dish } : x)))}
+                  onMove={() => setMoving((m) => (m === i ? null : i))}
+                  onPhoto={() => { setPhotoFor(i); rowFileRef.current?.click(); }}
+                  onRemove={() => { setMoving(null); onChange(visits.filter((_, n) => n !== i)); }}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
         <input ref={rowFileRef} type="file" accept="image/*" hidden onChange={(e) => { pickForRow(e.target.files?.[0]); e.target.value = ''; }} />
-        <p className="cooked-total" aria-live="polite">
-          {visits.length ? `${visits.length} ${visits.length === 1 ? 'meal' : 'meals'} here` : 'no meals here yet'}
-        </p>
       </div>
     </div>,
     document.body,

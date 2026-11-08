@@ -6,6 +6,8 @@ import { PenCircle } from './ink';
 import { PenIcon } from './PenIcons';
 import { EXPORT_FORMATS, type ExportFormat } from '../exportRecipes';
 import { InkSelect } from './InkSelect';
+import { ClearOut } from './ClearOut';
+import type { CardKinds } from '../store/types';
 
 /**
  * The strawberry jam jar in the desk's bottom-right corner: the way into settings.
@@ -60,8 +62,14 @@ function HelpNote() {
 }
 
 export function JamJar({
-  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, show, onShow, onExportAll, exportFormat, onExportFormat, onImportFiles, flipSound, onFlipSound, glowPalette, onGlowPalette,
+  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, show, onShow, onExportAll, exportFormat, onExportFormat, onImportFiles, flipSound, onFlipSound, glowPalette, onGlowPalette, counts, onClear, onReseed,
 }: {
+  /** How many of each kind of card are in the box. */
+  counts: { recipes: number; restaurants: number };
+  /** Throw away every card of a kind; resolves to a line saying what happened. */
+  onClear: (kind: CardKinds) => Promise<string>;
+  /** Put the sample cards back, unrated. */
+  onReseed: () => Promise<string>;
   sortBy: SortBy;
   onSortBy: (sortBy: SortBy) => void;
   recipeFont: Settings['recipeFont'];
@@ -253,6 +261,7 @@ export function JamJar({
                 }}
               />
               {importNote && <p className="file-note" role="status">{importNote}</p>}
+              <ClearOut counts={counts} onClear={onClear} onReseed={onReseed} />
             </div>
             </>)}
             </div>

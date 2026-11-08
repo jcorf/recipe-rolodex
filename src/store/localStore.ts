@@ -137,6 +137,31 @@ export const localStore: Store = {
     });
   },
 
+  async removeAll(kind) {
+    await start();
+    return tx(['recipes', 'photos'], 'readwrite', async (t) => {
+      const all = await getAll<Recipe>(t, 'recipes');
+      const going = all.filter((r) => kind === 'both' || (kind === 'restaurants') === (r.kind === 'restaurant'));
+      for (const r of going) {
+        await del(t, 'recipes', r.id);
+        for (const id of photoIds(r)) await del(t, 'photos', id);
+      }
+      return going.length;
+    });
+  },
+
+  async reseed() {
+    await start();
+    const now = new Date().toISOString();
+    const fresh = (seed as Recipe[]).map((r) => ({ ...r, rating: 0, updatedAt: now }));
+    await tx(['recipes', 'kv'], 'readwrite', async (t) => {
+      for (const r of fresh) await put(t, 'recipes', r);
+      // noted as given, so the top-up doesn't hand any of them out a second time
+      await put(t, 'kv', [...new Set([...((await get<string[]>(t, 'kv', SEEDED)) ?? []), ...TOP_UP.map((r) => r.id)])], SEEDED);
+    });
+    return fresh;
+  },
+
   async importRecipes(payload) {
     await start();
     return tx('recipes', 'readwrite', async (t) => {
