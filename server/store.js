@@ -34,6 +34,8 @@ export function saveRecipes(recipes) {
 // ───────── settings ─────────
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
+export const STAMP_FINISHES = ['plain', 'grainy', 'faded'];
+
 export const SORT_OPTIONS = ['category', 'rating', 'time', 'cuisine', 'alpha'];
 
 /** Colour pairs for the glow that follows the cursor (see GLOWS in src/types.ts). */
@@ -53,6 +55,10 @@ export const DEFAULT_SETTINGS = {
   showFind: true,
   /** The paper-flick sound when a card flips. */
   flipSound: true,
+  /** How stamps on the calendar are finished: 'plain', 'grainy' or 'faded'. */
+  stampFinish: 'plain',
+  /** The name written at the top of the desk. */
+  siteTitle: 'my recipes',
   /** Colours the cursor glow drifts between. */
   glowPalette: 'peach',
   /** Pastel stock for each category divider card. */
@@ -73,6 +79,8 @@ export async function loadSettings() {
     return {
       ...DEFAULT_SETTINGS,
       ...saved,
+      // the grainy option used to be a plain on/off setting
+      stampFinish: saved.stampFinish ?? (saved.grainyStamps ? 'grainy' : 'plain'),
       dividerColors: { ...DEFAULT_SETTINGS.dividerColors, ...saved.dividerColors },
       dividerFruits: { ...saved.dividerFruits },
     };

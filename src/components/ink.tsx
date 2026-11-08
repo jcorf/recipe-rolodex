@@ -62,7 +62,7 @@ export function InkFrame({ variant }: { variant: number }) {
 
 /** Frame paths are authored at the base card size (100 units ≈ that card); vertical distances stay
  *  fixed from the nearest top/bottom edge so only the long sides stretch as a card grows. */
-function toPixels(d: string, w: number, h: number) {
+export function toPixels(d: string, w: number, h: number) {
   const base = h > 0 ? Math.min(h, BASE_CARD_H) : BASE_CARD_H;
   let isX = true;
   return d.replace(/-?\d*\.?\d+/g, (n) => {
