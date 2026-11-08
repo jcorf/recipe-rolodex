@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { CATEGORIES, type Recipe, type SortBy } from '../types';
 import { groupRecipes } from '../sorting';
 import { Star, starFill } from './Stickers';
@@ -102,6 +102,22 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
   });
 
   const current = items[index];
+
+  // The front card grows downward to show the whole recipe, hanging below the card file's own box. The page
+  // doesn't count that overhang, so it couldn't be scrolled past: this measures it and leaves room for it
+  // (plus a little white), so a long card can be read to the end above the floating buttons.
+  const [overhang, setOverhang] = useState(0);
+  useEffect(() => {
+    const stage = stageRef.current;
+    const front = stage?.querySelector<HTMLElement>('.index-card.is-front');
+    if (!stage || !front) { setOverhang(0); return; }
+    const measure = () => setOverhang(Math.max(0, Math.round(front.getBoundingClientRect().bottom - stage.getBoundingClientRect().bottom)));
+    measure();
+    const ro = new ResizeObserver(measure); // the card grows over half a second as it comes to the front
+    ro.observe(front);
+    window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, [index, items]);
 
   // A sideways swipe flips: right brings the last card back, left goes on. (Up and down are left to scroll the page.)
   const swipe = useRef<{ x: number; y: number } | null>(null);
@@ -257,7 +273,7 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
               <div key={key} className={`index-card ${state}`} style={style} aria-hidden={d !== 0} onClick={onClick}>
                 <span className={`card-tab is-plain ${out ? 'is-restaurant' : ''}`}>
                   <TabEdge variant={look.tab} />
-                  {out && <PenIcon name="fork" />}
+                  {out && <span className="tab-dot" aria-hidden="true" />}
                 </span>
                 <div className="card-face">
                   <InkFrame variant={look.frame} />
@@ -344,6 +360,7 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
           })}
         </div>
       </div>
+      <div className="rolodex-room" style={{ height: overhang ? overhang + 32 : 0 }} aria-hidden="true" />
     </section>
   );
 }

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { ratingLabel } from '../recipeText';
 import { Star, starFill } from './Stickers';
+import { confetti } from '../confetti';
 
 /**
  * Five hand-drawn stars you can rate with, in halves: each star's left half sets n − ½, its
  * right half n; the same value again clears it. Hovering (or focusing) a half previews it.
+ * Giving something all five stars throws a little confetti.
  */
 export function StarRating({
   rating, onRate, variant, className = '',
@@ -30,7 +32,15 @@ export function StarRating({
               className={`star-half ${half ? 'is-right' : 'is-left'}`}
               aria-label={ratingLabel(value)}
               aria-pressed={rating === value}
-              onClick={() => { onRate(value === rating ? 0 : value); setPreview(null); }}
+              onClick={(e) => {
+                const next = value === rating ? 0 : value;
+                if (next === 5) {
+                  const box = e.currentTarget.getBoundingClientRect();
+                  confetti(box.left + box.width / 2, box.top + box.height / 2);
+                }
+                onRate(next);
+                setPreview(null);
+              }}
               onMouseEnter={() => setPreview(value)}
               onFocus={() => setPreview(value)}
               onBlur={() => setPreview(null)}

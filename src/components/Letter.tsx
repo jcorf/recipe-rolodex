@@ -112,7 +112,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
   const [addingPhoto, setAddingPhoto] = useState(false);
   const actionsRef = useRef<HTMLElement>(null);
   /** The photo editor: the picture it's showing (and the copy to throw away afterwards, for a fresh pick). */
-  const [editor, setEditor] = useState<{ src: string; own: boolean } | null>(null);
+  const [editor, setEditor] = useState<{ src: string; fallback?: string; own: boolean } | null>(null);
   const [kind, setKind] = useState<'recipe' | 'restaurant'>(recipe.kind ?? 'recipe');
   const [visits, setVisits] = useState<Visit[]>(recipe.visits ?? []);
   const [visitsOpen, setVisitsOpen] = useState(false);
@@ -246,8 +246,8 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
   /** Clicking the polaroid crops and zooms the card's photo, in or out of edit mode. */
   const editPhoto = async () => {
     setError('');
-    const src = await editableSource(editing ? { photo: form.photo, image: form.image } : { photo: recipe.photo, image: recipe.image });
-    if (src) setEditor({ src, own: false });
+    const { src, fallback } = await editableSource(editing ? { photo: form.photo, image: form.image } : { photo: recipe.photo, image: recipe.image });
+    if (src) setEditor({ src, fallback, own: false });
     else setError('Couldn’t open that photo to edit it. Try “change” to pick it again.');
   };
   const closeEditor = () => {
@@ -546,6 +546,8 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
       <nav ref={actionsRef} className="card-actions" aria-label="Card actions">
         {!editing && !confirmTear && (
           <>
+            {/* on a phone the card fills the screen, with nothing off it to tap: this puts it back */}
+            <ActionTag icon="cancel" label="close card" className="is-close" onClick={onClose} />
             <ActionTag icon="edit" label="edit card" onClick={() => { closeCooked(); closeVisits(); setVisits(recipe.visits ?? []); setEditing(true); }} />
             {!isNew && stampLook && !isOut && <ActionTag icon="stamp" label="I cooked this" onClick={() => setCookedOpen((o) => !o)} />}
             {!isNew && stampLook && isOut && <ActionTag icon="stamp" label="I ate here" onClick={() => setVisitsOpen((o) => !o)} />}
@@ -587,7 +589,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
         )}
       </nav>
 
-      {editor && <PhotoEditor src={editor.src} title={shown.title || 'this card'} onDone={keepPhoto} onCancel={closeEditor} />}
+      {editor && <PhotoEditor src={editor.src} fallback={editor.fallback} title={shown.title || 'this card'} onDone={keepPhoto} onCancel={closeEditor} />}
     </>
   );
 }

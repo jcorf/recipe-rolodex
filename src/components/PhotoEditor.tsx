@@ -13,8 +13,8 @@ const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 
 export function PhotoEditor({
-  src, title, onDone, onCancel,
-}: { src: string; title: string; onDone: (files: PhotoFiles) => Promise<void> | void; onCancel: () => void }) {
+  src, fallback, title, onDone, onCancel,
+}: { src: string; /** where to read the photo from if its own site won't share it */ fallback?: string; title: string; onDone: (files: PhotoFiles) => Promise<void> | void; onCancel: () => void }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   /** What's on show: the photo as given, or a turned copy of it. */
@@ -28,12 +28,24 @@ export function PhotoEditor({
   const [error, setError] = useState('');
   const drag = useRef<{ x: number; y: number } | null>(null);
 
+  // The picture has to be one the page may draw onto a canvas (to crop it), so a web photo is asked for
+  // "anonymously": its site has to say yes. If it doesn't, the same photo is read through the app instead.
   useEffect(() => {
-    const el = new Image();
-    el.onload = () => (el.naturalWidth > 0 ? setImg(el) : setFailed(true));
-    el.onerror = () => setFailed(true);
-    el.src = src;
-  }, [src]);
+    let alive = true;
+    const load = (from: string, next?: string) => {
+      const el = new Image();
+      el.crossOrigin = 'anonymous';
+      el.onload = () => {
+        if (!alive) return;
+        if (el.naturalWidth > 0) { setImg(el); setShownSrc(from); } else if (next) load(next); else setFailed(true);
+      };
+      el.onerror = () => alive && (next ? load(next) : setFailed(true));
+      el.src = from;
+    };
+    setFailed(false);
+    load(src, fallback);
+    return () => { alive = false; };
+  }, [src, fallback]);
 
   // turned copies are made here, so they're let go of here
   useEffect(() => () => turned.current.forEach((u) => URL.revokeObjectURL(u)), []);

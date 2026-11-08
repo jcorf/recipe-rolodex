@@ -17,16 +17,20 @@ export function photoUrl(id: string, size: PhotoSize): Promise<string | null> {
 export const savePhotoFiles = (files: PhotoFiles) => api.savePhoto(files);
 
 /**
- * The picture to crop for a card: its kept photo, else its web photo (read through the app so the
- * canvas can use it), else nothing. Resolves to '' when there's no photo to edit.
+ * The picture to crop for a card: its kept photo, else its web photo, else nothing ('' when there's no
+ * photo to edit). A web photo is tried straight from its own site first (many photo hosts allow a page to
+ * draw them onto a canvas), then read through the app's pass-through for the ones that don't.
  */
-export async function editableSource(recipe: { photo?: string; image?: string }): Promise<string> {
+export async function editableSource(recipe: { photo?: string; image?: string }): Promise<{ src: string; fallback?: string }> {
   if (recipe.photo) {
     const kept = await photoUrl(recipe.photo, 'main');
-    if (kept) return kept;
+    if (kept) return { src: kept };
   }
-  const link = recipe.image ?? '';
-  return /^https?:/i.test(link) ? `/api/image?url=${encodeURIComponent(link)}` : '';
+  let link = (recipe.image ?? '').trim();
+  if (link.startsWith('//')) link = `https:${link}`; // a link written without its http(s):
+  if (/^(data|blob):/i.test(link)) return { src: link };
+  if (!/^https?:/i.test(link)) return { src: '' };
+  return { src: link, fallback: `/api/image?url=${encodeURIComponent(link)}` };
 }
 
 /** A photo picked on this device: shrunk, kept, and its id handed back for the card. */
