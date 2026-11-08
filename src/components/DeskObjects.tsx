@@ -97,7 +97,7 @@ export function SurpriseTag({
                 onChange={(e) => setOptions((o) => ({ ...o, includeCooked: e.target.checked }))}
               />
               <span className="sort-label">
-                ones I’ve cooked too
+                ones I’ve rated or cooked too
                 {options.includeCooked && <PenCircle variant={2} />}
               </span>
             </label>

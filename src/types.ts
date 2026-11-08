@@ -25,6 +25,8 @@ export interface Recipe {
   steps: string[];
   rating: number;
   review: string;
+  /** Days this was cooked, as YYYY-MM-DD, oldest first. */
+  cooked?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -48,6 +50,10 @@ export interface Settings {
   showFind: boolean;
   /** The paper-flick sound when a card flips. */
   flipSound: boolean;
+  /** How stamps on the calendar are finished: as printed, worn and speckled, or faded under a thin veil. */
+  stampFinish: StampFinish;
+  /** The name written at the top of the desk (click it to rewrite it). */
+  siteTitle: string;
   /** Which colours the cursor glow drifts between (a key of GLOWS). */
   glowPalette: GlowKey;
   /** Hex color per divider: one per category plus 'unsorted'. */
@@ -65,3 +71,11 @@ export const GLOWS = [
 ] as const;
 
 export type GlowKey = (typeof GLOWS)[number]['key'];
+
+/** The finishes a stamp can have; only one at a time. */
+export const STAMP_FINISHES = [
+  { key: 'plain', label: 'plain' },
+  { key: 'grainy', label: 'grainy' },
+  { key: 'faded', label: 'faded' },
+] as const;
+export type StampFinish = (typeof STAMP_FINISHES)[number]['key'];
