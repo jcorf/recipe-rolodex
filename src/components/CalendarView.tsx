@@ -61,6 +61,8 @@ export function CalendarView({
   }, [onClose, paused]);
 
   const monthPrefix = `${at.year}-${String(at.month + 1).padStart(2, '0')}`;
+  // a day with more than two dishes can't show them all: the dice deals a different pair
+  const crowded = [...days.entries()].some(([d, list]) => d.startsWith(monthPrefix) && list.length > 2);
   const cookedCount = [...days.entries()].filter(([d]) => d.startsWith(monthPrefix)).reduce((n, [, list]) => n + list.length, 0);
 
   return (
@@ -115,6 +117,11 @@ export function CalendarView({
                     </span>
                   </label>
                 ))}
+                {crowded && (
+                  <button type="button" className="finish-dice" aria-label="Deal a new set of stamps on crowded days" onClick={() => setSeed(Math.random())}>
+                    <PenIcon name="dice" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

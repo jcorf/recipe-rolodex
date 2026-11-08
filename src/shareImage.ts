@@ -2,7 +2,7 @@ import { FRAMES, RULES, STARS } from './components/inkPaths';
 import { cardLook, toPixels } from './components/ink';
 import { loadFruitFont } from './components/FruitMark';
 import { stampFill, stampFruit, type StampLook } from './components/MonthGrid';
-import { MONTH_NAMES, WEEKDAYS, monthWeeks, stampTilt } from './dates';
+import { MONTH_NAMES, WEEKDAYS, monthWeeks, pickShown, stampTilt } from './dates';
 import { stampGrain } from './stampGrain';
 import { abbreviateUnits, servesLabel, splitAmount, stepText } from './recipeText';
 import { scallopPath } from './scallop';
@@ -27,6 +27,8 @@ export interface ShareContext {
   look: StampLook;
   /** The cursor-glow colours the owner picked, as "r g b": they tint the desk behind the picture. */
   glow: { warm: string; cool: string };
+  /** A plain white desk behind the picture instead of the glow colours. */
+  white?: boolean;
 }
 
 export interface MonthLook {
@@ -104,11 +106,11 @@ async function cottonSheet(w: number, h: number, id: string) {
 }
 
 /** The picture of a finished sheet: the desk, the sheet's soft shadow, and a signature underneath. */
-function onDesk(sheet: HTMLCanvasElement, w: number, h: number, margin: number, glow: ShareContext['glow']) {
+function onDesk(sheet: HTMLCanvasElement, w: number, h: number, margin: number, glow: ShareContext['glow'], white = false) {
   const W = w + margin * 2;
   const H = h + margin * 2 + 22;
   const { canvas, ctx } = newCanvas(W, H);
-  ctx.fillStyle = DESK;
+  ctx.fillStyle = white ? '#ffffff' : DESK;
   ctx.fillRect(0, 0, W, H);
   // the page's two lights: the warm one up by the cursor, the cool one drifting in the far corner
   const light = (cx: number, cy: number, rgb: string, strength: number) => {
@@ -120,8 +122,10 @@ function onDesk(sheet: HTMLCanvasElement, w: number, h: number, margin: number, 
     ctx.fillStyle = g2;
     ctx.fillRect(0, 0, W, H);
   };
-  light(W * 0.2, H * 0.12, glow.warm, 0.9);
-  light(W * 0.85, H * 0.92, glow.cool, 0.85);
+  if (!white) {
+    light(W * 0.2, H * 0.12, glow.warm, 0.9);
+    light(W * 0.85, H * 0.92, glow.cool, 0.85);
+  }
   ctx.save();
   ctx.shadowColor = 'rgba(60,55,50,.3)';
   ctx.shadowBlur = 26 * SCALE;
@@ -182,7 +186,7 @@ function drawStar(ctx: CanvasRenderingContext2D, variant: number, fill: number, 
 }
 
 /** A recipe card as a picture: the open card, on the desk. */
-export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow }: ShareContext): Promise<Blob> {
+export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow, white }: ShareContext): Promise<Blob> {
   const hand = handFamily(recipeFont);
   const handPx = handSize(recipeFont);
   const lower = recipeFont !== 'print';
@@ -338,7 +342,7 @@ export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow }: Sh
     c.textAlign = 'left';
 
     const margin = 40;
-    const out = onDesk(sheet, CW, CH, margin, glow);
+    const out = onDesk(sheet, CW, CH, margin, glow, white);
     signature(out.ctx, out.W, out.H);
     return toBlob(out.canvas);
   }
@@ -398,7 +402,7 @@ function drawStamp(
 }
 
 /** A month of the calendar as a picture, a stamp on every day something was cooked. */
-export async function renderMonthImage(year: number, month: number, recipes: Recipe[], { recipeFont, look, glow }: ShareContext, { seed }: MonthLook): Promise<Blob> {
+export async function renderMonthImage(year: number, month: number, recipes: Recipe[], { recipeFont, look, glow, white }: ShareContext, { seed }: MonthLook): Promise<Blob> {
   const hand = handFamily(recipeFont === 'print' ? 'hand' : recipeFont);
   await ensureFonts([LABEL_FONT, hand]);
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -468,7 +472,7 @@ export async function renderMonthImage(year: number, month: number, recipes: Rec
     week.forEach((day, i) => {
       if (!day) return;
       const x = PAD + i * cellW;
-      const list = (byDay.get(day) ?? []).slice(0, 2);
+      const list = pickShown(byDay.get(day) ?? [], day, seed);
       list.forEach((r, n) => {
         const h = list.length > 1 ? 58 : 70;
         const sw = (STAMP_W / STAMP_H) * h;
@@ -488,7 +492,7 @@ export async function renderMonthImage(year: number, month: number, recipes: Rec
     });
   });
 
-  const out = onDesk(sheet, CW, CH, 40, glow);
+  const out = onDesk(sheet, CW, CH, 40, glow, white);
   signature(out.ctx, out.W, out.H);
   return toBlob(out.canvas);
 }

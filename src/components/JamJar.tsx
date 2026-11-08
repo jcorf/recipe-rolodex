@@ -33,7 +33,11 @@ function HelpNote() {
         <li><b>open</b> the front card to read it, edit it, or give it stars. half stars count.</li>
         <li><b>new card</b>: pull one from the stack. paste a link on the first line and it fills itself in.</li>
         <li><b>find</b>: looks through names, meals, cuisines and ingredients.</li>
-        <li><b>surprise me</b> picks something you haven’t cooked yet.</li>
+        <li><b>surprise me</b> picks something you haven’t cooked yet. its little arrow narrows it by meal or cuisine.</li>
+        <li><b>cooked it?</b> open a card and press the stamp tag, then tap the day. tap a stamped day again to lift the stamp off.</li>
+        <li><b>the spoon</b> (top right) opens the calendar: a stamp of each dish on the day you cooked it. flip months with the arrows or ← →, and tap a stamp to open the recipe. under the month, choose plain, grainy or faded stamps; the dice deals new ones on days with more than two.</li>
+        <li><b>share</b> a card, or a month of the calendar, as a picture to send, copy or save.</li>
+        <li>click the <b>name at the top</b> to rename your box.</li>
         <li>click a <b>fruit</b> to swap it for another.</li>
         <li><b>the box</b>: save a copy of every recipe (and any open card) as .json to add back later, or as .md, .txt, .docx or .pdf to read, edit or print.</li>
       </ul>

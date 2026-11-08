@@ -1238,7 +1238,7 @@ button:disabled { cursor: default; }
   position: fixed;
   right: clamp(1rem, 3vw, 2.25rem);
   bottom: 1.25rem;
-  z-index: 5;
+  z-index: 8; /* above the header: a tall settings card reaches up under it, and it would swallow clicks */
   width: var(--jar-w);
 }
 .jam-jar-button {
@@ -1526,7 +1526,7 @@ button:disabled { cursor: default; }
 .glow-dot .pen-circle { inset: -0.2rem; width: calc(100% + 0.4rem); height: calc(100% + 0.4rem); }
 .glow-swatch:hover .glow-dot,
 .glow-swatch:has(:focus-visible) .glow-dot { transform: scale(1.15) rotate(-6deg); }
-.jar-pop.is-help { width: 19rem; }
+.jar-pop.is-help { width: min(23rem, 92vw); }
 .help-note { padding-top: 0.2rem; font-size: 0.85rem; line-height: 1.45; }
 .help-note .pop-title + ul,
 .help-note .pop-title + p { margin-top: 0; }
@@ -1653,6 +1653,22 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
   font-size: 1.1rem;
   color: var(--ink-soft);
 }
+.finish-dice {
+  display: inline-grid;
+  place-items: center;
+  align-self: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  transition: transform 0.35s var(--ease-out), background-color 0.25s;
+}
+.finish-dice .pen-icon { width: 1.35rem; height: 1.35rem; }
+.finish-dice:hover,
+.finish-dice:focus-visible { background: rgb(255 254 250 / 0.75); transform: rotate(180deg) scale(1.1); }
 .calendar-finish .sort-option { position: relative; display: inline-block; padding: 0 0.1rem; color: var(--ink); }
 .month-flip {
   display: grid;
@@ -1713,6 +1729,17 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
   box-shadow: 0 2px 4px rgb(60 55 50 / 0.2), 0 18px 40px rgb(60 55 50 / 0.28);
 }
 .share-wait { width: min(30rem, 80vw); height: 18rem; background: var(--card); }
+.share-backdrop {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.3rem 1.1rem;
+  margin-top: 0.9rem;
+  font-family: var(--script);
+  font-size: 1.1rem;
+  color: var(--ink-soft);
+}
+.share-backdrop .sort-option { display: inline-block; padding: 0 0.1rem; color: var(--ink); }
 .share-picture .letter-notice { position: absolute; left: 50%; bottom: 1.6rem; translate: -50% 0; margin: 0; white-space: nowrap; }
 
 /* ───────── motion ───────── */

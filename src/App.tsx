@@ -280,7 +280,7 @@ export default function App() {
           key={shareRecipe.id + shareRecipe.updatedAt}
           title={shareRecipe.title}
           filename={`${fileSlug(shareRecipe.title)}.png`}
-          render={() => renderRecipeImage(shareRecipe, shareContext)}
+          render={(white) => renderRecipeImage(shareRecipe, { ...shareContext, white })}
           onClose={closeShare}
         />
       )}
@@ -288,7 +288,7 @@ export default function App() {
         <ShareSheet
           title={`${MONTH_NAMES[share.month]} ${share.year}, what I cooked`}
           filename={`cooked-${share.year}-${String(share.month + 1).padStart(2, '0')}.png`}
-          render={() => renderMonthImage(share.year, share.month, recipes, shareContext, { seed: share.seed })}
+          render={(white) => renderMonthImage(share.year, share.month, recipes, { ...shareContext, white }, { seed: share.seed })}
           onClose={closeShare}
         />
       )}
