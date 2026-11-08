@@ -233,6 +233,7 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
                   <header className={`card-header ${meta.length ? 'has-meta' : ''}`}>
                     <h2 className="card-title">{recipe.title}</h2>
                     {meta.length > 0 && <p className="card-meta">{meta.join('  ·  ')}</p>}
+                    {out && recipe.address && <p className="card-meta card-address">{recipe.address}</p>}
                     {d === 0 ? (
                       // rate right from the rolodex: the front card's stars take clicks (halves too)
                       <StarRating

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MONTH_NAMES, addMonths } from '../dates';
-import { STAMP_FINISHES, type Recipe, type Shown, type StampCard, type StampFinish } from '../types';
+import { ATE_OUT_STYLES, STAMP_FINISHES, type AteOutStyle, type Recipe, type Shown, type StampCard, type StampFinish } from '../types';
 import { stampsByDay } from '../stamps';
 import { cardLook, InkFrame, InkRule, PenCircle } from './ink';
 import { ActionTag } from './ActionTag';
@@ -12,12 +12,12 @@ import { MonthGrid, type StampLook } from './MonthGrid';
  * every day it was cooked. Flip months with the pen arrows or ← →; click a stamp to open its recipe.
  */
 export function CalendarView({
-  recipes, show, look, onOpenRecipe, onShare, onClose, onFinish, onAteOutBorder, paused = false,
+  recipes, show, look, onOpenRecipe, onShare, onClose, onFinish, onAteOutStyle, paused = false,
 }: {
   /** Which kinds of card stamp the calendar (recipes cooked, meals eaten out). */
   show: Shown;
-  /** Give meals eaten out a zigzag edge, or the same edge as a cooked dish. */
-  onAteOutBorder: (on: boolean) => void;
+  /** How a meal eaten out is stamped: a scalloped circle, or a bordered colour. */
+  onAteOutStyle: (style: AteOutStyle) => void;
   /** Choose how the stamps are finished: plain, grainy or faded (saved as a setting). */
   onFinish: (finish: StampFinish) => void;
   /** A share sheet is open on top: leave the keys to it. */
@@ -86,7 +86,7 @@ export function CalendarView({
         className="letter-overlay"
         role="dialog"
         aria-modal="true"
-        aria-label={`What I cooked, ${MONTH_NAMES[at.month]} ${at.year}`}
+        aria-label={`What I ate, ${MONTH_NAMES[at.month]} ${at.year}`}
         onPointerDown={(e) => { if (!sceneRef.current?.contains(e.target as Node)) onClose(); }}
       >
         <div ref={sceneRef} className="open-scene calendar-scene">
@@ -140,13 +140,21 @@ export function CalendarView({
                 )}
               </div>
               {anyAteOut && (
-                <label className={`sort-option calendar-option ${look.ateOutBorder ? 'is-chosen' : ''}`}>
-                  <input type="checkbox" className="visually-hidden" checked={!!look.ateOutBorder} onChange={(e) => onAteOutBorder(e.target.checked)} />
-                  <span className="sort-label">
-                    zigzag edge for meals out
-                    {look.ateOutBorder && <PenCircle variant={6} />}
-                  </span>
-                </label>
+                <div role="radiogroup" aria-label="How meals eaten out are stamped" className="calendar-finish">
+                  <span>meals out</span>
+                  {ATE_OUT_STYLES.map((o, i) => {
+                    const chosen = (look.ateOutStyle ?? 'circle') === o.key;
+                    return (
+                      <label key={o.key} className={`sort-option ${chosen ? 'is-chosen' : ''}`}>
+                        <input type="radio" name="ate-out-style" className="visually-hidden" checked={chosen} onChange={() => onAteOutStyle(o.key)} />
+                        <span className="sort-label">
+                          {o.label}
+                          {chosen && <PenCircle variant={i + 6} />}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>

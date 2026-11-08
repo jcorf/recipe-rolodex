@@ -1794,6 +1794,10 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 
 /* ───────── restaurants, visits and the photo editor ───────── */
 .is-locked { opacity: 0.7; cursor: default; } /* the last kind left in the box can't be put away */
+.open-address { margin: 0.1rem 0 0; font-family: var(--script); font-size: 0.85rem; line-height: 1.5; color: var(--ink-soft); }
+.address-line { display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.4rem; }
+.address-line .ink-input { flex: 1; font-size: 1rem; font-weight: 300; }
+.card-address { font-size: 0.78rem; }
 .kind-toggle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.9rem; margin: 0 0 0.5rem; font-family: var(--script); font-size: 1rem; color: var(--ink-soft); }
 .kind-toggle .sort-option { display: inline-block; padding: 0 0.1rem; color: var(--ink); line-height: 1.5; }
 
@@ -1841,9 +1845,28 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 .visit-photo .pen-icon { width: 1.2rem; height: 1.2rem; }
 .visit-list { margin: 0.5rem 0 0; padding: 0; list-style: none; max-height: 8rem; overflow-y: auto; }
 .visit-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0; font-family: var(--hand); font-size: 1.1rem; line-height: 1.1; }
-.visit-list .amt { flex: none; width: 3.4rem; color: var(--ink-soft); }
-.visit-dish { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.visit-list .visit-thumb { width: 1.4rem; height: 1.75rem; }
+.visit-date {
+  flex: none;
+  width: 3.4rem;
+  padding: 0;
+  border: none;
+  border-bottom: 1px dashed transparent;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: var(--ink-soft);
+  transition: color 0.2s, border-color 0.2s;
+}
+.visit-date:hover,
+.visit-date:focus-visible,
+.visit-date[aria-pressed='true'] { color: var(--ink); border-bottom-color: var(--pencil); }
+.visit-list li.is-moving { background: rgb(255 254 250 / 0.7); }
+.visit-dish-input { flex: 1; min-width: 0; font-family: var(--hand); font-size: 1.1rem; line-height: 1.1; }
+.visit-photo.is-small { width: 1.7rem; height: 2.1rem; }
+.visit-photo.is-small .pen-icon { width: 0.95rem; height: 0.95rem; }
+.visit-moving { margin: 0.4rem 0 0; font-family: var(--script); font-size: 1rem; color: var(--enamel-deep); }
+.visit-rows li.is-link { cursor: pointer; }
+.visit-rows li.is-link:hover .amt { color: var(--ink); }
 .visit-remove { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; border: none; border-radius: 50%; background: none; color: var(--ink-soft); }
 .visit-remove .pen-icon { width: 0.95rem; height: 0.95rem; }
 .visit-remove:hover,

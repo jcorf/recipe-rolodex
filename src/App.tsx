@@ -38,7 +38,7 @@ function filterRecipes(recipes: Recipe[], query: string) {
     [
       r.title, r.cuisine, r.category, categoryLabel(r.category), r.review, ...(r.ingredients ?? []),
       // restaurants: where, how much, what kind of place, and what was eaten there
-      r.location ?? '', r.price ?? '', VENUES.find((v) => v.key === r.venue)?.label ?? '', ...(r.visits ?? []).map((v) => v.dish),
+      r.location ?? '', r.address ?? '', r.price ?? '', VENUES.find((v) => v.key === r.venue)?.label ?? '', ...(r.visits ?? []).map((v) => v.dish),
     ].some((field) => field.toLowerCase().includes(q)),
   );
 }
@@ -181,7 +181,7 @@ export default function App() {
   /** A new card is a restaurant from the start when restaurants are all that's in the box. */
   const newDraft: Draft = showRestaurants && !showRecipes ? { kind: 'restaurant' } : {};
 
-  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {}, finish: settings?.stampFinish ?? 'plain', ateOutBorder: settings?.ateOutBorder ?? true };
+  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {}, finish: settings?.stampFinish ?? 'plain', ateOutStyle: settings?.ateOutStyle ?? 'circle' };
   const closeShare = useCallback(() => setShare(null), []);
   const closeCalendar = useCallback(() => setCalendarOpen(false), []);
   const shareRecipe = share?.kind === 'recipe' ? recipes.find((r) => r.id === share.id) : undefined;
@@ -246,7 +246,7 @@ export default function App() {
       </main>
 
       <div className="spoon-desk">
-        <ActionTag icon="spoon" label="what I cooked" onClick={() => setCalendarOpen(true)} />
+        <ActionTag icon="spoon" label="what I ate" onClick={() => setCalendarOpen(true)} />
       </div>
 
       {!loadError && showRecipes && recipes.some((r) => r.kind !== 'restaurant') && <SurpriseTag onPick={surprise} cuisines={cuisines} />}
@@ -311,7 +311,7 @@ export default function App() {
           show={kinds}
           look={stampLook}
           onClose={closeCalendar}
-          onAteOutBorder={(ateOutBorder) => changeSettings({ ateOutBorder })}
+          onAteOutStyle={(ateOutStyle) => changeSettings({ ateOutStyle })}
           onOpenRecipe={(r) => { setCalendarOpen(false); setOpen({ kind: 'saved', id: stampCardId(r) }); }}
           onFinish={(stampFinish) => changeSettings({ stampFinish })}
           onShare={(year, month, seed) => setShare({ kind: 'month', year, month, seed })}

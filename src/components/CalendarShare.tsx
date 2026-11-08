@@ -64,21 +64,21 @@ export function CalendarShare({
     if (page === 'week') {
       const end = addDays(weekStart, 6);
       return {
-        title: `${rangeLabel(weekStart, end)}, what I cooked`,
-        filename: `cooked-week-${weekStart}.png`,
+        title: `${rangeLabel(weekStart, end)}, what I ate`,
+        filename: `ate-week-${weekStart}.png`,
         render: (white: boolean) => renderWeekImage(weekStart, recipes, { ...context, white }, look),
       };
     }
     if (page === 'day') {
       return {
-        title: `${weekdayName(day)} ${longDate(day)}, what I cooked`,
-        filename: `cooked-day-${day}.png`,
+        title: `${weekdayName(day)} ${longDate(day)}, what I ate`,
+        filename: `ate-day-${day}.png`,
         render: (white: boolean) => renderDayImage(day, recipes, { ...context, white }, look),
       };
     }
     return {
-      title: `${MONTH_NAMES[month]} ${year}, what I cooked`,
-      filename: `cooked-${year}-${String(month + 1).padStart(2, '0')}.png`,
+      title: `${MONTH_NAMES[month]} ${year}, what I ate`,
+      filename: `ate-${year}-${String(month + 1).padStart(2, '0')}.png`,
       render: (white: boolean) => renderMonthImage(year, month, recipes, { ...context, white }, look),
     };
   })();

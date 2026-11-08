@@ -58,6 +58,7 @@ interface Form {
   price: Price | '';
   venue: Venue | '';
   location: string;
+  address: string;
 }
 
 const toForm = (r: Draft): Form => ({
@@ -74,6 +75,7 @@ const toForm = (r: Draft): Form => ({
   price: r.price ?? '',
   venue: r.venue ?? '',
   location: r.location ?? '',
+  address: r.address ?? '',
 });
 
 const lines = (text: string) => text.split('\n').map((s) => s.trim()).filter(Boolean);
@@ -183,7 +185,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
         rating,
         review,
         kind,
-        ...(isOut ? { price: form.price, venue: form.venue, location: form.location, visits } : {}),
+        ...(isOut ? { price: form.price, venue: form.venue, location: form.location, address: form.address, visits } : {}),
       });
       if (!isNew) setEditing(false);
     });
@@ -360,7 +362,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
                             options={[{ value: '', label: 'unsorted' }, ...VENUES.map((v) => ({ value: v.key, label: v.key }))]}
                           />
                         </label>
-                        <label>where <input className="ink-input" value={form.location} onChange={set('location')} placeholder="e.g. east village" /></label>
+                        <label>city <input className="ink-input" value={form.location} onChange={set('location')} placeholder="e.g. new york" /></label>
                         <label>cuisine <input className="ink-input" value={form.cuisine} onChange={set('cuisine')} placeholder="e.g. italian" /></label>
                       </>
                     ) : (
@@ -381,7 +383,13 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
                     )}
                   </div>
                 ) : (
-                  meta.length > 0 && <p className="open-meta">{meta.join('  ·  ')}</p>
+                  <>
+                    {meta.length > 0 && <p className="open-meta">{meta.join('  ·  ')}</p>}
+                    {isOut && shown.address && <p className="open-address">{shown.address}</p>}
+                  </>
+                )}
+                {editing && isOut && (
+                  <label className="address-line">address <input className="ink-input" value={form.address} onChange={set('address')} placeholder="a street or a neighbourhood (optional)" /></label>
                 )}
               </div>
 
@@ -440,7 +448,15 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
                   {sortedVisits.length ? (
                     <ul className="card-ingredients visit-rows">
                       {sortedVisits.map((v, n) => (
-                        <li key={n}>
+                        <li
+                          key={n}
+                          // tap a meal to open the visits and fix it (what you had, its photo, its day)
+                          className={editing ? '' : 'is-link'}
+                          role={editing ? undefined : 'button'}
+                          tabIndex={editing ? undefined : 0}
+                          onClick={editing ? undefined : () => stampLook && setVisitsOpen(true)}
+                          onKeyDown={editing ? undefined : (e) => { if (e.key === 'Enter') setVisitsOpen(true); }}
+                        >
                           <span className="amt">{shortDay(v.date)}</span>
                           <span>{v.dish || 'a visit'}<VisitThumb photo={v.photo} label={v.dish || 'the dish'} /></span>
                         </li>

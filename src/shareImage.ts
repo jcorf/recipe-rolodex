@@ -5,10 +5,10 @@ import { stampFill, stampFruit, type StampLook } from './components/MonthGrid';
 import { MONTH_NAMES, WEEKDAYS, shortDay, addDays, hash01, longDate, monthWeeks, pickShown, rangeLabel, stampTilt, weekdayName } from './dates';
 import { stampGrain } from './stampGrain';
 import { abbreviateUnits, servesLabel, splitAmount, stepText } from './recipeText';
-import { scallopPath, zigzagPath } from './scallop';
+import { scallopPath } from './scallop';
 import { PATHS } from './components/PenIcons';
 import { stampsByDay } from './stamps';
-import { STAMP_CANCEL, STAMP_H, STAMP_INSET, STAMP_PAPER, STAMP_PEN, STAMP_VEIL, STAMP_W } from './components/Stamp';
+import { BORDER_OUTLINE, CIRCLE_CLIP, CIRCLE_OUTLINE, STAMP_CANCEL, STAMP_H, STAMP_INSET, STAMP_PAPER, STAMP_PEN, STAMP_VEIL, STAMP_W } from './components/Stamp';
 import type { Recipe, Settings, Shown, StampCard } from './types';
 import { keptPhotoUrl } from './usePhoto';
 
@@ -253,6 +253,8 @@ export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow, whit
   y += 40;
   const metaY = y;
   if (meta) y += 34;
+  const addressY = y - 8;
+  if (eatenOut && recipe.address) y += 24;
   if (photo) y = Math.max(y, 34 + 140 + 24);
   const noteY = y;
   y += noteLines.length ? noteLines.length * (handPx + 3) * 1.15 + 8 : 0;
@@ -297,6 +299,11 @@ export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow, whit
       c.font = `18px "${LABEL_FONT}"`;
       c.fillStyle = INK_SOFT;
       c.fillText(meta, PAD, metaY + 22);
+    }
+    if (eatenOut && recipe.address) { // the extra line for the spot itself
+      c.font = `17px "${LABEL_FONT}"`;
+      c.fillStyle = INK_SOFT;
+      c.fillText(recipe.address, PAD, addressY + 22);
     }
     if (noteLines.length) {
       c.font = `${handPx + 3}px "${hand}"`;
@@ -388,18 +395,24 @@ function drawStamp(
   c.shadowColor = 'rgba(60,55,50,.35)';
   c.shadowBlur = 5;
   c.shadowOffsetY = 2;
-  c.fillStyle = STAMP_PAPER;
-  c.fill(new Path2D(recipe.ateOut && look.ateOutBorder ? zigzagPath(STAMP_W, STAMP_H, 3.6) : scallopPath(STAMP_W, STAMP_H, 4.6)));
+  // a cooked dish is a perforated rectangle; a meal eaten out is a scalloped circle, or a hand-cut bordered colour
+  const round = !!recipe.ateOut && (look.ateOutStyle ?? 'circle') === 'circle';
+  const bordered = !!recipe.ateOut && look.ateOutStyle === 'border';
+  c.fillStyle = bordered ? stampFill(recipe, look) : STAMP_PAPER;
+  c.fill(new Path2D(round ? CIRCLE_OUTLINE : bordered ? BORDER_OUTLINE : scallopPath(STAMP_W, STAMP_H, 4.6)));
   c.shadowColor = 'transparent';
   const iw = STAMP_W - STAMP_INSET * 2;
   const ih = STAMP_H - STAMP_INSET * 2;
   c.save();
-  c.beginPath();
-  c.rect(STAMP_INSET, STAMP_INSET, iw, ih);
-  c.clip();
+  if (round) c.clip(new Path2D(CIRCLE_CLIP));
+  else {
+    c.beginPath();
+    c.rect(STAMP_INSET, STAMP_INSET, iw, ih);
+    c.clip();
+  }
   if (photo) drawCover(c, photo, STAMP_INSET, STAMP_INSET, iw, ih);
   else {
-    c.fillStyle = stampFill(recipe, look);
+    c.fillStyle = bordered ? STAMP_PAPER : stampFill(recipe, look); // the colour is already the border
     c.fillRect(STAMP_INSET, STAMP_INSET, iw, ih);
     c.fillStyle = INK;
     if (recipe.ateOut) { // a meal eaten out with no photo: a fork, drawn in pen
@@ -435,7 +448,7 @@ function drawStamp(
   c.strokeStyle = INK;
   c.lineWidth = 0.9;
   c.globalAlpha = 0.75;
-  c.stroke(new Path2D(STAMP_PEN));
+  c.stroke(new Path2D(round ? CIRCLE_CLIP : STAMP_PEN));
   c.restore();
 }
 

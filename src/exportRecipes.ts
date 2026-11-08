@@ -159,6 +159,7 @@ function sections(r: Recipe) {
       title: r.title,
       details: [r.price, r.venue, r.location, r.cuisine, r.rating ? ratingLabel(r.rating) : ''].filter(Boolean).join(' · '),
       source,
+      address: r.address ?? '',
       note: '',
       parts: [
         { title: 'What we ate', items: meals, style: 'bullets' },
@@ -171,6 +172,7 @@ function sections(r: Recipe) {
     title: r.title,
     details: [meal, r.cuisine, r.totalTime, servesLabel(r.servings), r.rating ? ratingLabel(r.rating) : ''].filter(Boolean).join(' · '),
     source,
+    address: '',
     note: r.review,
     parts: [
       { title: 'Ingredients', items: r.ingredients.map(abbreviateUnits), style: 'bullets' },
@@ -186,6 +188,7 @@ export function recipeToMarkdown(r: Recipe) {
   const c = sections(r);
   const out = [`# ${c.title}`];
   if (c.details) out.push(`*${c.details}*`);
+  if (c.address) out.push(`Address: ${c.address}`);
   if (c.source) out.push(`From [${c.source.name}](${c.source.url})`);
   if (c.note) out.push(c.note.split('\n').map((l) => `> ${l}`).join('\n'));
   for (const part of c.parts) {
@@ -205,6 +208,7 @@ export function recipeToText(r: Recipe) {
   const c = sections(r);
   const out = [c.title.toUpperCase()];
   if (c.details) out.push(c.details);
+  if (c.address) out.push(`Address: ${c.address}`);
   if (c.source) out.push(`From ${c.source.name}: ${c.source.url}`);
   if (c.note) out.push(c.note);
   for (const part of c.parts) {
@@ -235,6 +239,7 @@ async function toDocx(recipes: Recipe[]) {
     return [
       new Paragraph({ text: c.title, heading: HeadingLevel.HEADING_1, pageBreakBefore: n > 0 }),
       ...(c.details ? [new Paragraph({ children: [new TextRun({ text: c.details, italics: true })] })] : []),
+      ...(c.address ? [new Paragraph({ children: [new TextRun(`Address: ${c.address}`)] })] : []),
       ...(c.source
         ? [new Paragraph({ children: [new TextRun('From '), new ExternalHyperlink({ link: c.source.url, children: [new TextRun({ text: c.source.name, style: 'Hyperlink' })] })] })]
         : []),
@@ -268,6 +273,7 @@ async function toPdf(recipes: Recipe[]) {
     const c = sections(r);
     write(c.title, 22, 'bold', 4);
     if (c.details) write(c.details, 11, 'italic', 2);
+    if (c.address) write(`Address: ${c.address}`, 10, 'normal', 2);
     if (c.source) write(`From ${c.source.name}`, 10, 'normal', 2);
     if (c.note) write(c.note, 11, 'italic', 6);
     c.parts.forEach((part, k) => {

@@ -1,12 +1,12 @@
 // The rules a card and the settings must follow, whichever store keeps them.
 // (Moved from the old Express server so the app works without one.)
-import { CATEGORIES, GLOWS, PRICES, STAMP_FINISHES, VENUES, type Draft, type Recipe, type Settings, type Visit } from '../types';
+import { ATE_OUT_STYLES, CATEGORIES, GLOWS, PRICES, STAMP_FINISHES, VENUES, type Draft, type Recipe, type Settings, type Visit } from '../types';
 import { SORT_OPTIONS } from '../sorting';
 
 const CATEGORY_KEYS: string[] = CATEGORIES.map((c) => c.key);
 
 const TEXT_FIELDS = [
-  'title', 'sourceUrl', 'sourceName', 'image', 'cuisine', 'servings', 'totalTime', 'description', 'review', 'location',
+  'title', 'sourceUrl', 'sourceName', 'image', 'cuisine', 'servings', 'totalTime', 'description', 'review', 'location', 'address',
 ] as const;
 
 /** Only web links (or nothing) for links that end up in an href or src. Blocks `javascript:` and the like. */
@@ -152,7 +152,7 @@ export const DEFAULT_SETTINGS: Settings = {
   flipSound: true,
   showRecipes: true,
   showRestaurants: false, // a feature to turn on
-  ateOutBorder: true,
+  ateOutStyle: 'circle',
   stampFinish: 'plain',
   siteTitle: 'my recipes',
   glowPalette: 'peach',
@@ -168,8 +168,9 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 /** Saved settings filled out with the defaults (older saves may be missing newer settings). */
-export function withDefaults(saved: Partial<Settings> & { grainyStamps?: boolean } = {}): Settings {
-  const { grainyStamps, ...rest } = saved;
+export function withDefaults(saved: Partial<Settings> & { grainyStamps?: boolean; ateOutBorder?: boolean } = {}): Settings {
+  const { grainyStamps, ateOutBorder: _old, ...rest } = saved; // both were replaced by newer settings
+  void _old;
   return {
     ...DEFAULT_SETTINGS,
     ...rest,
@@ -221,11 +222,15 @@ export function applySettings(current: Settings, patch: Partial<Settings>): Sett
     if (!STAMP_FINISHES.some((f) => f.key === patch.stampFinish)) fail('Pick plain, grainy or faded.');
     next.stampFinish = patch.stampFinish;
   }
+  if (patch.ateOutStyle !== undefined) {
+    if (!ATE_OUT_STYLES.some((s) => s.key === patch.ateOutStyle)) fail('Pick a circle or a bordered stamp.');
+    next.ateOutStyle = patch.ateOutStyle;
+  }
   if (patch.glowPalette !== undefined) {
     if (!GLOWS.some((g) => g.key === patch.glowPalette)) fail('Pick a glow from the list.');
     next.glowPalette = patch.glowPalette;
   }
-  for (const key of ['showNewCard', 'showFind', 'flipSound', 'showRecipes', 'showRestaurants', 'ateOutBorder'] as const) {
+  for (const key of ['showNewCard', 'showFind', 'flipSound', 'showRecipes', 'showRestaurants'] as const) {
     if (patch[key] === undefined) continue;
     if (typeof patch[key] !== 'boolean') fail(`${key} must be true or false.`);
     next[key] = patch[key];

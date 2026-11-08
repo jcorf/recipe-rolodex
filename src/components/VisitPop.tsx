@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { MONTH_NAMES, addMonths, longDate, shortDay } from '../dates';
 import { stampsByDay } from '../stamps';
@@ -13,10 +13,54 @@ export function VisitThumb({ photo, label }: { photo?: string; label: string }) 
   return src ? <img className="visit-thumb" src={src} alt={label} /> : null;
 }
 
+/** One meal in the list, every part of it editable: what was had, its photo, and its day. */
+function VisitRow({
+  visit, moving, onDish, onMove, onPhoto, onRemove,
+}: {
+  visit: Visit;
+  moving: boolean;
+  onDish: (dish: string) => void;
+  onMove: () => void;
+  onPhoto: () => void;
+  onRemove: () => void;
+}) {
+  const [dish, setDish] = useState(visit.dish);
+  useEffect(() => setDish(visit.dish), [visit.dish]);
+  const thumb = usePhotoSrc({ photo: visit.photo }, 'thumb');
+  // saved when you leave the line (not on every letter), like writing on a card
+  const commit = () => {
+    const text = dish.trim();
+    if (text !== visit.dish) onDish(text);
+  };
+  return (
+    <li className={moving ? 'is-moving' : ''}>
+      <button type="button" className="visit-date" aria-pressed={moving} title="Move to another day" onClick={onMove}>
+        {shortDay(visit.date)}
+      </button>
+      <input
+        className="ink-input visit-dish-input"
+        value={dish}
+        maxLength={120}
+        placeholder="what did you have?"
+        aria-label={`What you had on ${longDate(visit.date)}`}
+        onChange={(e) => setDish(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
+      />
+      <button type="button" className="visit-photo is-small" onClick={onPhoto} aria-label={visit.photo ? 'Change the photo of this meal' : 'Add a photo of this meal'}>
+        {thumb ? <img src={thumb} alt="" /> : <PenIcon name="plus" />}
+      </button>
+      <button type="button" className="visit-remove" aria-label={`Remove the visit on ${longDate(visit.date)}`} onClick={onRemove}>
+        <PenIcon name="cancel" />
+      </button>
+    </li>
+  );
+}
+
 /**
  * "When did you eat here?": a month page. What you had (and a photo of it, if you like) is written
  * first, then tapping a day files that meal under it. Tap a day again for a second meal; every meal
- * stays listed below, and can be crossed off.
+ * stays listed below, and can be edited later (what you had, its photo, its day) or crossed off.
  */
 export function VisitPop({
   restaurant, visits, look, onChange, innerRef,
@@ -35,6 +79,10 @@ export function VisitPop({
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  /** A meal already listed whose photo is being picked, and one waiting to be moved to a new day. */
+  const rowFileRef = useRef<HTMLInputElement>(null);
+  const [photoFor, setPhotoFor] = useState<number | null>(null);
+  const [moving, setMoving] = useState<number | null>(null);
 
   // the restaurant stamps each day it was visited, with that visit's photo
   const days = useMemo(() => stampsByDay([{ ...restaurant, kind: 'restaurant', visits }], { recipes: false, restaurants: true }), [restaurant, visits]);
@@ -42,6 +90,11 @@ export function VisitPop({
   const sorted = [...visits].map((v, i) => ({ v, i })).sort((a, b) => b.v.date.localeCompare(a.v.date));
 
   const eat = (date: string) => {
+    if (moving !== null) { // a listed meal was waiting for a new day
+      onChange(visits.map((v, i) => (i === moving ? { ...v, date } : v)).sort((a, b) => a.date.localeCompare(b.date)));
+      setMoving(null);
+      return;
+    }
     onChange([...visits, { date, dish: dish.trim(), ...(photo ? { photo } : {}) }].sort((a, b) => a.date.localeCompare(b.date)));
     setDish('');
     setPhoto('');
@@ -57,6 +110,19 @@ export function VisitPop({
       setError((err as Error).message);
     } finally {
       setAdding(false);
+    }
+  };
+
+  const pickForRow = async (file: File | undefined) => {
+    const at = photoFor;
+    setPhotoFor(null);
+    if (!file || at === null) return;
+    setError('');
+    try {
+      const id = await addPhoto(file);
+      onChange(visits.map((v, i) => (i === at ? { ...v, photo: id } : v)));
+    } catch (err) {
+      setError((err as Error).message);
     }
   };
 
@@ -87,20 +153,28 @@ export function VisitPop({
           <button type="button" className="month-flip" aria-label="Next month" onClick={() => flip(1)}><PenIcon name="right" /></button>
         </div>
         <MonthGrid year={at.year} month={at.month} days={days} look={look} seed={seed} compact onDay={eat} />
+        {moving !== null && (
+          <p className="visit-moving" role="status">
+            tap the new day for {visits[moving]?.dish || 'this meal'}{' '}
+            <button type="button" className="today-link" onClick={() => setMoving(null)}>never mind</button>
+          </p>
+        )}
         {sorted.length > 0 && (
           <ul className="visit-list">
             {sorted.map(({ v, i }) => (
-              <li key={i}>
-                <span className="amt" title={longDate(v.date)}>{shortDay(v.date)}</span>
-                <span className="visit-dish">{v.dish || 'a visit'}</span>
-                <VisitThumb photo={v.photo} label={v.dish || 'the dish'} />
-                <button type="button" className="visit-remove" aria-label={`Remove the visit on ${longDate(v.date)}`} onClick={() => onChange(visits.filter((_, n) => n !== i))}>
-                  <PenIcon name="cancel" />
-                </button>
-              </li>
+              <VisitRow
+                key={`${v.date}-${i}`}
+                visit={v}
+                moving={moving === i}
+                onDish={(dish) => onChange(visits.map((x, n) => (n === i ? { ...x, dish } : x)))}
+                onMove={() => setMoving((m) => (m === i ? null : i))}
+                onPhoto={() => { setPhotoFor(i); rowFileRef.current?.click(); }}
+                onRemove={() => { setMoving(null); onChange(visits.filter((_, n) => n !== i)); }}
+              />
             ))}
           </ul>
         )}
+        <input ref={rowFileRef} type="file" accept="image/*" hidden onChange={(e) => { pickForRow(e.target.files?.[0]); e.target.value = ''; }} />
         <p className="cooked-total" aria-live="polite">
           {visits.length ? `${visits.length} ${visits.length === 1 ? 'meal' : 'meals'} here` : 'no meals here yet'}
         </p>

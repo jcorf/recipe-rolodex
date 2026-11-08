@@ -55,8 +55,10 @@ export interface Recipe {
    *  `review` as the thoughts, `cuisine` and `rating` as they are, and the fields below. */
   kind?: 'recipe' | 'restaurant';
   price?: Price | '';
-  /** Neighbourhood or city. */
+  /** The city: what the "location" sort groups by. */
   location?: string;
+  /** An extra line for the spot itself (a street, a neighbourhood). */
+  address?: string;
   venue?: Venue | '';
   /** Every meal eaten there, each with its day. */
   visits?: Visit[];
@@ -86,8 +88,8 @@ export interface Settings {
   /** What's in the box: recipes (on unless put away) and restaurants (a feature to turn on). At least one stays on. */
   showRecipes: boolean;
   showRestaurants: boolean;
-  /** Meals eaten out are stamped with a zigzag edge on the calendar, to tell them from cooking. */
-  ateOutBorder: boolean;
+  /** How a meal eaten out is stamped on the calendar, to tell it from cooking: a scalloped circle, or a bordered colour. */
+  ateOutStyle: AteOutStyle;
   /** How stamps on the calendar are finished: as printed, worn and speckled, or faded under a thin veil. */
   stampFinish: StampFinish;
   /** The name written at the top of the desk (click it to rewrite it). */
@@ -128,3 +130,10 @@ export interface StampCard extends Recipe {
 
 /** Which kinds of card are in the box right now. */
 export interface Shown { recipes: boolean; restaurants: boolean }
+
+/** The two looks for a meal eaten out (a cooked dish is always a perforated rectangle). */
+export const ATE_OUT_STYLES = [
+  { key: 'circle', label: 'circle' },
+  { key: 'border', label: 'bordered' },
+] as const;
+export type AteOutStyle = (typeof ATE_OUT_STYLES)[number]['key'];

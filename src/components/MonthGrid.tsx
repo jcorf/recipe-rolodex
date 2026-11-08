@@ -1,5 +1,5 @@
 import { MONTH_NAMES, WEEKDAYS, monthWeeks, pickShown, stampTilt, todayYmd } from '../dates';
-import type { Recipe, StampCard, StampFinish } from '../types';
+import type { AteOutStyle, Recipe, StampCard, StampFinish } from '../types';
 import { Stamp } from './Stamp';
 import { dividerFruit } from './FruitMark';
 
@@ -9,8 +9,8 @@ export interface StampLook {
   fruits: Record<string, string>;
   /** How stamps are finished (a setting): plain, grainy or faded. */
   finish?: StampFinish;
-  /** Meals eaten out get a zigzag edge (a setting). */
-  ateOutBorder?: boolean;
+  /** How a meal eaten out is stamped (a setting). */
+  ateOutStyle?: AteOutStyle;
 }
 
 /** A restaurant borrows the meal pastels by its kind of place (bars: drinks blue, bakeries: dessert pink…). */
@@ -57,7 +57,7 @@ export function MonthGrid({
                 <>
                   <span className="day-num">{Number(day.slice(8))}</span>
                   {shown.map((r, n) => {
-                    const stamp = <Stamp image={r.image} photo={r.photo} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} finish={look.finish} zigzag={!!r.ateOut && !!look.ateOutBorder} ateOut={!!r.ateOut} />;
+                    const stamp = <Stamp image={r.image} photo={r.photo} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} finish={look.finish} ateOut={!!r.ateOut} ateOutStyle={look.ateOutStyle} />;
                     const cls = `day-stamp is-${shown.length}-${n}`;
                     const lean = { rotate: `${stampTilt(r.id, day, seed)}deg` };
                     return onStamp && !onDay ? (
