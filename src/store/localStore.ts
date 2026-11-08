@@ -1,12 +1,20 @@
 // The signed-out store: every card and setting kept in this browser's IndexedDB.
 import type { Recipe, Settings } from '../types';
 import type { Store } from './types';
+import type { PhotoFiles } from '../photos';
 import { applySettings, cardsToAdd, newRecipe, patchRecipe, withDefaults } from './rules';
-import { askToPersist, del, get, getAll, put, tx } from './db';
+import { askToPersist, del, get, getAll, getAllKeys, put, tx } from './db';
 import seed from './seed.json';
 
 const SETTINGS = 'settings';
 const STARTED = 'started';
+/** A photo no card points to is cleared once it's this old (a day covers a card still being written). */
+const UNUSED_PHOTO_MS = 24 * 60 * 60 * 1000;
+
+interface PhotoRecord extends PhotoFiles {
+  id: string;
+  createdAt: number;
+}
 
 /** Cards in the order they were added (IndexedDB hands them back by id). */
 const byAdded = (a: Recipe, b: Recipe) => a.createdAt.localeCompare(b.createdAt);
@@ -49,6 +57,24 @@ function start() {
   return starting;
 }
 
+let swept = false;
+
+/** Once a visit: clears photos that no card points to (picked for a card that was never saved, or replaced). */
+async function sweepPhotos() {
+  if (swept) return;
+  swept = true;
+  await tx(['recipes', 'photos'], 'readwrite', async (t) => {
+    const used = new Set((await getAll<Recipe>(t, 'recipes')).map((r) => r.photo).filter(Boolean));
+    const keys = (await getAllKeys(t, 'photos')) as string[];
+    const old = Date.now() - UNUSED_PHOTO_MS;
+    for (const id of keys) {
+      if (used.has(id)) continue;
+      const record = await get<PhotoRecord>(t, 'photos', id);
+      if (record && record.createdAt < old) await del(t, 'photos', id);
+    }
+  }).catch(() => { swept = false; });
+}
+
 async function readSettings(t: IDBTransaction) {
   return withDefaults(await get<Settings>(t, 'kv', SETTINGS));
 }
@@ -57,6 +83,7 @@ export const localStore: Store = {
   async list() {
     await start();
     const recipes = await tx('recipes', 'readonly', (t) => getAll<Recipe>(t, 'recipes'));
+    void sweepPhotos();
     return recipes.sort(byAdded);
   },
 
@@ -69,20 +96,24 @@ export const localStore: Store = {
 
   async update(id, patch) {
     await start();
-    return tx('recipes', 'readwrite', async (t) => {
+    return tx(['recipes', 'photos'], 'readwrite', async (t) => {
       const current = await get<Recipe>(t, 'recipes', id);
       if (!current) throw new Error('That card is no longer in the rolodex.');
       const next = patchRecipe(current, patch as Record<string, unknown>);
       await put(t, 'recipes', next);
+      // a replaced or removed photo goes with it
+      if (current.photo && current.photo !== next.photo) await del(t, 'photos', current.photo);
       return next;
     });
   },
 
   async remove(id) {
     await start();
-    await tx('recipes', 'readwrite', async (t) => {
-      if (!(await get<Recipe>(t, 'recipes', id))) throw new Error('That card is no longer in the rolodex.');
+    await tx(['recipes', 'photos'], 'readwrite', async (t) => {
+      const current = await get<Recipe>(t, 'recipes', id);
+      if (!current) throw new Error('That card is no longer in the rolodex.');
       await del(t, 'recipes', id);
+      if (current.photo) await del(t, 'photos', current.photo);
     });
   },
 
@@ -107,5 +138,17 @@ export const localStore: Store = {
       await put(t, 'kv', next, SETTINGS);
       return next;
     });
+  },
+
+  async savePhoto({ main, thumb }) {
+    const record: PhotoRecord = { id: crypto.randomUUID(), main, thumb, createdAt: Date.now() };
+    await tx('photos', 'readwrite', (t) => put(t, 'photos', record));
+    void askToPersist();
+    return record.id;
+  },
+
+  async photo(id, size) {
+    const record = await tx('photos', 'readonly', (t) => get<PhotoRecord>(t, 'photos', id));
+    return record?.[size];
   },
 };

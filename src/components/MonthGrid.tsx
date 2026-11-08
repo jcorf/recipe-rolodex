@@ -51,7 +51,7 @@ export function MonthGrid({
                 <>
                   <span className="day-num">{Number(day.slice(8))}</span>
                   {shown.map((r, n) => {
-                    const stamp = <Stamp image={r.image} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} finish={look.finish} />;
+                    const stamp = <Stamp image={r.image} photo={r.photo} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} finish={look.finish} />;
                     const cls = `day-stamp is-${shown.length}-${n}`;
                     const lean = { rotate: `${stampTilt(r.id, day, seed)}deg` };
                     return onStamp && !onDay ? (

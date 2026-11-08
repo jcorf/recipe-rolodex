@@ -1,4 +1,5 @@
 import type { Draft, Recipe, Settings } from '../types';
+import type { PhotoFiles, PhotoSize } from '../photos';
 
 /** What adding recipes from an exported .json file did. */
 export interface ImportResult {
@@ -22,4 +23,11 @@ export interface Store {
   importRecipes(payload: unknown): Promise<ImportResult>;
   settings(): Promise<Settings>;
   saveSettings(patch: Partial<Settings>): Promise<Settings>;
+  /**
+   * Keeps a photo's two copies and returns its id, to put on a card as `photo`. A photo no card
+   * points to is cleared away later, so one picked for a card that's never saved doesn't linger.
+   */
+  savePhoto(files: PhotoFiles): Promise<string>;
+  /** One copy of a kept photo, or undefined if it's gone. */
+  photo(id: string, size: PhotoSize): Promise<Blob | undefined>;
 }

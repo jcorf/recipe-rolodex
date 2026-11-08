@@ -36,6 +36,10 @@ export function cleanRecipe(input: Record<string, unknown>): Draft {
       : [];
     out.cooked = [...new Set(days)].sort();
   }
+  if ('photo' in input) {
+    const id = input.photo == null ? '' : String(input.photo);
+    out.photo = /^[a-z0-9-]{1,64}$/i.test(id) ? id : '';
+  }
   if ('category' in input) {
     out.category = CATEGORY_KEYS.includes(input.category as string) ? (input.category as Recipe['category']) : '';
   }
@@ -49,7 +53,7 @@ export function cleanRecipe(input: Record<string, unknown>): Draft {
 export function newRecipe(draft: Record<string, unknown>, now = new Date().toISOString()): Recipe {
   const recipe: Recipe = {
     id: crypto.randomUUID(),
-    title: '', category: '', sourceUrl: '', sourceName: '', image: '', cuisine: '', servings: '',
+    title: '', category: '', sourceUrl: '', sourceName: '', image: '', photo: '', cuisine: '', servings: '',
     totalTime: '', description: '', ingredients: [], steps: [], rating: 0, review: '', cooked: [],
     ...cleanRecipe(draft),
     createdAt: now,

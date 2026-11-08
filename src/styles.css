@@ -866,6 +866,26 @@ button:disabled { cursor: default; }
   cursor: pointer;
 }
 .mini-polaroid-add:hover { background: #e3ded5; }
+.mini-polaroid-add:disabled { cursor: progress; }
+/* change · remove, written small on the polaroid's bottom strip while editing */
+.mini-polaroid-actions {
+  position: absolute;
+  inset: auto 0 0.05rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+}
+.mini-polaroid-actions button {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--hand);
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.mini-polaroid-actions button:hover { color: var(--ink); text-decoration: underline; }
 .mini-polaroid-bow {
   position: absolute;
   top: -1.05rem;

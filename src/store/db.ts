@@ -68,6 +68,8 @@ export const get = <T>(t: IDBTransaction, store: StoreName, key: IDBValidKey) =>
   done(t.objectStore(store).get(key)) as Promise<T | undefined>;
 export const getAll = <T>(t: IDBTransaction, store: StoreName) =>
   done(t.objectStore(store).getAll()) as Promise<T[]>;
+export const getAllKeys = (t: IDBTransaction, store: StoreName) =>
+  done(t.objectStore(store).getAllKeys());
 export const put = (t: IDBTransaction, store: StoreName, value: unknown, key?: IDBValidKey) =>
   done(t.objectStore(store).put(value, key));
 export const del = (t: IDBTransaction, store: StoreName, key: IDBValidKey) =>
