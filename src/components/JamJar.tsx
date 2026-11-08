@@ -7,6 +7,7 @@ import { PenIcon } from './PenIcons';
 import { EXPORT_FORMATS, type ExportFormat } from '../exportRecipes';
 import { InkSelect } from './InkSelect';
 import { ClearOut } from './ClearOut';
+import { AccountRow } from './AccountRow';
 import type { CardKinds } from '../store/types';
 
 /**
@@ -263,6 +264,7 @@ export function JamJar({
               {importNote && <p className="file-note" role="status">{importNote}</p>}
               <ClearOut counts={counts} onClear={onClear} onReseed={onReseed} />
             </div>
+            <AccountRow />
             </>)}
             </div>
           </div>
