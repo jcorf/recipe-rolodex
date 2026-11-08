@@ -14,7 +14,7 @@ export const CATEGORIES = ['breakfast', 'small-plates', 'drinks', 'lunch', 'dinn
 
 const FIELDS = [
   'title', 'category', 'sourceUrl', 'sourceName', 'image', 'cuisine', 'servings',
-  'totalTime', 'description', 'ingredients', 'steps', 'rating', 'review',
+  'totalTime', 'description', 'ingredients', 'steps', 'rating', 'review', 'cooked',
 ];
 
 function clean(input) {
@@ -24,6 +24,10 @@ function clean(input) {
     const value = input[key];
     if (key === 'ingredients' || key === 'steps') {
       out[key] = Array.isArray(value) ? value.map(String).map((s) => s.trim()).filter(Boolean) : [];
+    } else if (key === 'cooked') {
+      // days as YYYY-MM-DD, real dates only, no repeats, oldest first
+      const days = Array.isArray(value) ? value.map(String).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d))) : [];
+      out[key] = [...new Set(days)].sort();
     } else if (key === 'category') {
       out[key] = CATEGORIES.includes(value) ? value : '';
     } else if (key === 'rating') {
@@ -45,7 +49,7 @@ app.post('/api/recipes', async (req, res) => {
   const recipe = {
     id: randomUUID(),
     title: '', category: '', sourceUrl: '', sourceName: '', image: '', cuisine: '', servings: '',
-    totalTime: '', description: '', ingredients: [], steps: [], rating: 0, review: '',
+    totalTime: '', description: '', ingredients: [], steps: [], rating: 0, review: '', cooked: [],
     ...clean(req.body ?? {}),
     createdAt: now,
     updatedAt: now,
@@ -170,6 +174,25 @@ app.put('/api/settings', async (req, res) => {
   const next = { ...current, sortBy, titleFruit, recipeFont, glowPalette, dividerFruits, ...flags, dividerColors: colors };
   await saveSettings(next);
   res.json(next);
+});
+
+/**
+ * Passes a recipe photo through from its own site, so the page can draw it onto a canvas for a
+ * shared image (a canvas can't be saved once it holds a picture from another site).
+ */
+app.get('/api/image', async (req, res) => {
+  try {
+    const url = new URL(String(req.query.url ?? ''));
+    if (!/^https?:$/.test(url.protocol)) throw new Error('not a web link');
+    const upstream = await fetch(url, { headers: { 'user-agent': 'RecipeRolodex/0.1 (personal, self-hosted recipe importer)' }, signal: AbortSignal.timeout(12000) });
+    const type = upstream.headers.get('content-type') ?? '';
+    if (!upstream.ok || !type.startsWith('image/')) throw new Error('not an image');
+    const bytes = Buffer.from(await upstream.arrayBuffer());
+    if (bytes.length > 8 * 1024 * 1024) throw new Error('too large');
+    res.set('content-type', type).set('cache-control', 'private, max-age=86400').send(bytes);
+  } catch (err) {
+    res.status(422).json({ error: `Couldn’t load that photo (${err.message}).` });
+  }
 });
 
 app.post('/api/import', async (req, res) => {

@@ -25,6 +25,8 @@ export interface Recipe {
   steps: string[];
   rating: number;
   review: string;
+  /** Days this was cooked, as YYYY-MM-DD, oldest first. */
+  cooked?: string[];
   createdAt: string;
   updatedAt: string;
 }

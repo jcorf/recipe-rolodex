@@ -11,6 +11,11 @@ import { FruitMark } from './components/FruitMark';
 import { JamJar } from './components/JamJar';
 import { useDriftingLight } from './useDriftingLight';
 import { Letter } from './components/Letter';
+import { CalendarView } from './components/CalendarView';
+import { ShareSheet } from './components/ShareSheet';
+import { ActionTag } from './components/ActionTag';
+import { fileSlug, renderMonthImage, renderRecipeImage } from './shareImage';
+import { MONTH_NAMES } from './dates';
 
 /** The cursor glow's two colours, as CSS variables on the glow layer. */
 function glowStyle(key?: string): React.CSSProperties {
@@ -28,6 +33,8 @@ function filterRecipes(recipes: Recipe[], query: string) {
   );
 }
 
+type Share = { kind: 'recipe'; id: string } | { kind: 'month'; year: number; month: number } | null;
+
 type Open =
   | { kind: 'saved'; id: string }
   | { kind: 'draft'; draft: Draft; notice?: string }
@@ -41,6 +48,8 @@ export default function App() {
   const [index, setIndex] = useState(0);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Open>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [share, setShare] = useState<Share>(null);
   const [exportFormat, setExportFormat] = useState<ExportFormat>(loadExportFormat);
   const findRef = useRef<HTMLInputElement>(null);
 
@@ -89,7 +98,7 @@ export default function App() {
   const surprise = ({ includeCooked, category, cuisine }: SurpriseOptions) => {
     const front = items[index];
     const pool = recipes.filter((r) =>
-      (includeCooked || !r.rating) &&
+      (includeCooked || (!r.rating && !r.cooked?.length)) &&
       (!category || (category === 'unsorted' ? !r.category : r.category === category)) &&
       (!cuisine || r.cuisine.trim().toLowerCase() === cuisine) &&
       !(front?.kind === 'recipe' && front.recipe.id === r.id && (recipes.length > 1)),
@@ -122,15 +131,21 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      if (e.key !== '/' || open || t.closest('input, textarea, select, [contenteditable]')) return;
+      if (e.key !== '/' || open || calendarOpen || share || t.closest('input, textarea, select, [contenteditable]')) return;
       e.preventDefault();
       findRef.current?.focus();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
+  }, [open, calendarOpen, share]);
 
   const close = useCallback(() => setOpen(null), []);
+
+  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {} };
+  const closeShare = useCallback(() => setShare(null), []);
+  const closeCalendar = useCallback(() => setCalendarOpen(false), []);
+  const shareRecipe = share?.kind === 'recipe' ? recipes.find((r) => r.id === share.id) : undefined;
+  const shareContext = { recipeFont: settings?.recipeFont ?? 'hand', look: stampLook };
 
   const openRecipe = open?.kind === 'saved' ? recipes.find((r) => r.id === open.id) : undefined;
 
@@ -160,7 +175,7 @@ export default function App() {
               onDividerFruit={(group, glyph) =>
                 changeSettings({ dividerFruits: { ...settings?.dividerFruits, [group]: glyph } })
               }
-              keyboard={!open}
+              keyboard={!open && !calendarOpen && !share}
               onRate={(recipe, rating) => {
                 setRecipes((list) => list.map((r) => (r.id === recipe.id ? { ...r, rating } : r)));
                 api.update(recipe.id, { rating }).catch(() => {
@@ -188,6 +203,10 @@ export default function App() {
           </div>
         )}
       </main>
+
+      <div className="spoon-desk">
+        <ActionTag icon="spoon" label="what I cooked" onClick={() => setCalendarOpen(true)} />
+      </div>
 
       {!loadError && recipes.length > 0 && <SurpriseTag onPick={surprise} cuisines={cuisines} />}
 
@@ -224,6 +243,8 @@ export default function App() {
           key={openRecipe.id}
           recipe={openRecipe}
           isNew={false}
+          stampLook={stampLook}
+          onShare={() => setShare({ kind: 'recipe', id: openRecipe.id })}
           exportLabel={`export card (.${exportFormat})`}
           onExport={() => exportCard(openRecipe, exportFormat)}
           onClose={close}
@@ -237,6 +258,35 @@ export default function App() {
             setRecipes((list) => list.filter((r) => r.id !== openRecipe.id));
             setOpen(null);
           }}
+        />
+      )}
+
+      {calendarOpen && (
+        <CalendarView
+          paused={!!share}
+          recipes={recipes}
+          look={stampLook}
+          onClose={closeCalendar}
+          onOpenRecipe={(r) => { setCalendarOpen(false); setOpen({ kind: 'saved', id: r.id }); }}
+          onShare={(year, month) => setShare({ kind: 'month', year, month })}
+        />
+      )}
+
+      {shareRecipe && (
+        <ShareSheet
+          key={shareRecipe.id + shareRecipe.updatedAt}
+          title={shareRecipe.title}
+          filename={`${fileSlug(shareRecipe.title)}.png`}
+          render={() => renderRecipeImage(shareRecipe, shareContext)}
+          onClose={closeShare}
+        />
+      )}
+      {share?.kind === 'month' && (
+        <ShareSheet
+          title={`${MONTH_NAMES[share.month]} ${share.year}, what I cooked`}
+          filename={`cooked-${share.year}-${String(share.month + 1).padStart(2, '0')}.png`}
+          render={() => renderMonthImage(share.year, share.month, recipes, shareContext)}
+          onClose={closeShare}
         />
       )}
 
