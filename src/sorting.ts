@@ -19,8 +19,9 @@ export const SORT_OPTIONS: { key: SortBy; label: string }[] = [
   { key: 'alpha', label: 'a – z' },
 ];
 
-export const byTitle = (a: Recipe, b: Recipe) =>
-  a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+/** One shared collator: building one per comparison (what localeCompare with options does) is slow with thousands of cards. */
+const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
+export const byTitle = (a: Recipe, b: Recipe) => collator.compare(a.title, b.title);
 
 /** "1 hr 30 min" → 90, "25 min" → 25, "PT45M"-style leftovers → 45; null when there's no number. */
 export function minutesOf(time?: string): number | null {
