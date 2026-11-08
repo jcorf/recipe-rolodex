@@ -1,4 +1,4 @@
-import { CATEGORIES, type Recipe, type SortBy } from './types';
+import { CATEGORIES, PRICES, VENUES, type Recipe, type SortBy } from './types';
 
 /** One divider's worth of cards. */
 export interface Group {
@@ -11,13 +11,23 @@ export interface Group {
   plain?: boolean;
 }
 
-export const SORT_OPTIONS: { key: SortBy; label: string }[] = [
-  { key: 'category', label: 'meal' },
-  { key: 'rating', label: 'stars' },
-  { key: 'time', label: 'time' },
-  { key: 'cuisine', label: 'cuisine' },
-  { key: 'alpha', label: 'a – z' },
+/** Which kind of card a way of sorting is about: 'both' divides recipes and restaurants alike. */
+export type SortScope = 'both' | 'recipe' | 'restaurant';
+
+export const SORT_OPTIONS: { key: SortBy; label: string; scope: SortScope }[] = [
+  { key: 'category', label: 'meal', scope: 'recipe' },
+  { key: 'rating', label: 'stars', scope: 'both' },
+  { key: 'time', label: 'time', scope: 'recipe' },
+  { key: 'cuisine', label: 'cuisine', scope: 'both' },
+  { key: 'alpha', label: 'a – z', scope: 'both' },
+  { key: 'price', label: 'price', scope: 'restaurant' },
+  { key: 'location', label: 'location', scope: 'restaurant' },
+  { key: 'venue', label: 'kind of place', scope: 'restaurant' },
 ];
+
+/** The ways of sorting on offer: those that suit what's in the box (meal and time need recipes; price, location and kind of place need restaurants). */
+export const sortOptionsFor = (show: { recipes: boolean; restaurants: boolean }) =>
+  SORT_OPTIONS.filter((o) => (o.scope !== 'restaurant' || show.restaurants) && (o.scope !== 'recipe' || show.recipes));
 
 /** One shared collator: building one per comparison (what localeCompare with options does) is slow with thousands of cards. */
 const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
@@ -43,6 +53,8 @@ const TIME_BUCKETS = [
   { key: '120-plus', label: '2 hours +', test: () => true },
 ];
 
+const isOut = (r: Recipe) => r.kind === 'restaurant';
+
 /** Puts the recipes into ordered groups for the chosen sort, A–Z inside each group. */
 export function groupRecipes(recipes: Recipe[], sortBy: SortBy): Group[] {
   const buckets = new Map<string, Group>();
@@ -55,10 +67,11 @@ export function groupRecipes(recipes: Recipe[], sortBy: SortBy): Group[] {
   switch (sortBy) {
     case 'category': {
       for (const r of recipes) {
+        if (isOut(r)) { add('out', 'eating out', r); continue; } // meals are for recipes; restaurants wait at the back
         const c = CATEGORIES.find((x) => x.key === r.category);
         add(c?.key ?? 'unsorted', c?.label ?? 'unsorted', r);
       }
-      order = [...CATEGORIES.map((c) => c.key), 'unsorted'];
+      order = [...CATEGORIES.map((c) => c.key), 'unsorted', 'out'];
       break;
     }
     case 'rating': {
@@ -73,11 +86,12 @@ export function groupRecipes(recipes: Recipe[], sortBy: SortBy): Group[] {
     }
     case 'time': {
       for (const r of recipes) {
+        if (isOut(r)) { add('out', 'eating out', r); continue; }
         const m = minutesOf(r.totalTime);
         const b = m == null ? null : TIME_BUCKETS.find((x) => x.test(m))!;
         add(b?.key ?? 'time-unknown', b?.label ?? 'time unknown', r);
       }
-      order = [...TIME_BUCKETS.map((b) => b.key), 'time-unknown'];
+      order = [...TIME_BUCKETS.map((b) => b.key), 'time-unknown', 'out'];
       break;
     }
     case 'cuisine': {
@@ -88,6 +102,32 @@ export function groupRecipes(recipes: Recipe[], sortBy: SortBy): Group[] {
       order = [...buckets.keys()].sort((a, b) =>
         a === 'cuisine-none' ? 1 : b === 'cuisine-none' ? -1 : a.localeCompare(b),
       );
+      break;
+    }
+    case 'price': {
+      for (const r of recipes) {
+        if (!isOut(r)) { add('home', 'cooked at home', r); continue; } // recipes have no price: they wait at the back
+        add(r.price ? `price-${r.price}` : 'price-none', r.price || 'no price', r);
+      }
+      order = [...PRICES.map((p) => `price-${p}`), 'price-none', 'home'];
+      break;
+    }
+    case 'location': {
+      for (const r of recipes) {
+        if (!isOut(r)) { add('home', 'cooked at home', r); continue; }
+        const place = (r.location ?? '').trim().toLowerCase();
+        add(place ? `place-${place}` : 'place-none', place || 'no location', r);
+      }
+      order = [...buckets.keys()].filter((k) => k !== 'home' && k !== 'place-none').sort().concat('place-none', 'home');
+      break;
+    }
+    case 'venue': {
+      for (const r of recipes) {
+        if (!isOut(r)) { add('home', 'cooked at home', r); continue; }
+        const v = VENUES.find((x) => x.key === r.venue);
+        add(v ? `venue-${v.key}` : 'venue-none', v?.label ?? 'unsorted', r);
+      }
+      order = [...VENUES.map((v) => `venue-${v.key}`), 'venue-none', 'home'];
       break;
     }
     case 'alpha': {

@@ -1,7 +1,9 @@
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
-import { CATEGORIES, GLOWS, type Draft, type Recipe, type Settings } from './types';
+import { CATEGORIES, GLOWS, VENUES, type Shown, type Draft, type Recipe, type Settings, type SortBy } from './types';
 import { Rolodex, buildItems, type RolodexItem } from './components/Rolodex';
+import { sortOptionsFor } from './sorting';
+import { stampCardId } from './stamps';
 import { CardStack, FindSlip, SurpriseTag, type SurpriseOptions } from './components/DeskObjects';
 import {
   exportCard, exportCards, importFiles, importMessage,
@@ -24,13 +26,20 @@ function glowStyle(key?: string): React.CSSProperties {
   return { '--glow-warm': g.warm, '--glow-cool': g.cool } as React.CSSProperties;
 }
 
+/** The way to divide the box when the chosen one no longer fits what's in it. */
+const fallbackSort = (show: Shown): SortBy => (show.recipes ? 'category' : 'rating');
+
 const categoryLabel = (key: string) => CATEGORIES.find((c) => c.key === key)?.label ?? '';
 
 function filterRecipes(recipes: Recipe[], query: string) {
   const q = query.trim().toLowerCase();
   if (!q) return recipes;
   return recipes.filter((r) =>
-    [r.title, r.cuisine, r.category, categoryLabel(r.category), r.review, ...r.ingredients].some((field) => field.toLowerCase().includes(q)),
+    [
+      r.title, r.cuisine, r.category, categoryLabel(r.category), r.review, ...(r.ingredients ?? []),
+      // restaurants: where, how much, what kind of place, and what was eaten there
+      r.location ?? '', r.address ?? '', r.price ?? '', VENUES.find((v) => v.key === r.venue)?.label ?? '', ...(r.visits ?? []).map((v) => v.dish),
+    ].some((field) => field.toLowerCase().includes(q)),
   );
 }
 
@@ -69,15 +78,30 @@ export default function App() {
   const searched = useDeferredValue(query);
   /** The search the rolodex last started over for (see the layout effect below). */
   const lastSearched = useRef(searched);
-  const shown = useMemo(() => filterRecipes(recipes, searched), [recipes, searched]);
+  const showRecipes = settings?.showRecipes ?? true;
+  const showRestaurants = settings?.showRestaurants ?? false;
+  /** What's in the box. Whatever is put away stays out of everything: the rolodex, search, sorts, the calendar. */
+  const kinds = useMemo<Shown>(() => ({ recipes: showRecipes, restaurants: showRestaurants }), [showRecipes, showRestaurants]);
+  const visible = useMemo(
+    () => recipes.filter((r) => (r.kind === 'restaurant' ? showRestaurants : showRecipes)),
+    [recipes, showRecipes, showRestaurants],
+  );
+  const shown = useMemo(() => filterRecipes(visible, searched), [visible, searched]);
 
-  const sortBy = settings?.sortBy ?? 'category';
+  // a restaurant-only sort (price, location…) can't stay on once restaurants are off
+  const chosenSort = settings?.sortBy ?? 'category';
+  const sortBy = sortOptionsFor(kinds).some((o) => o.key === chosenSort) ? chosenSort : fallbackSort(kinds);
   const items = useMemo(() => buildItems(shown, sortBy), [shown, sortBy]);
 
   // Settings change on the page at once and are saved in the background.
   const changeSettings = (patch: Partial<Settings>) => {
+    // putting recipes or restaurants away also drops a sort that only makes sense for them
+    if (patch.showRecipes !== undefined || patch.showRestaurants !== undefined) {
+      const next: Shown = { recipes: patch.showRecipes ?? showRecipes, restaurants: patch.showRestaurants ?? showRestaurants };
+      if (!sortOptionsFor(next).some((o) => o.key === (settings?.sortBy ?? 'category'))) patch = { ...patch, sortBy: fallbackSort(next) };
+    }
     setSettings((s) => (s ? { ...s, ...patch } : s));
-    if (patch.sortBy) setIndex(0);
+    if (patch.sortBy || patch.showRecipes !== undefined || patch.showRestaurants !== undefined) setIndex(0);
     api.saveSettings(patch).then(setSettings).catch(() => { /* keep the local choice; it retries next change */ });
   };
 
@@ -96,7 +120,7 @@ export default function App() {
 
   /** Cuisines in the box, for the surprise card's menu. */
   const cuisines = useMemo(
-    () => [...new Set(recipes.map((r) => r.cuisine.trim().toLowerCase()).filter(Boolean))].sort(),
+    () => [...new Set(recipes.filter((r) => r.kind !== 'restaurant').map((r) => r.cuisine.trim().toLowerCase()).filter(Boolean))].sort(),
     [recipes],
   );
 
@@ -104,6 +128,7 @@ export default function App() {
   const surprise = ({ includeCooked, category, cuisine }: SurpriseOptions) => {
     const front = items[index];
     const pool = recipes.filter((r) =>
+      r.kind !== 'restaurant' && // surprise me is for something to cook
       (includeCooked || (!r.rating && !r.cooked?.length)) &&
       (!category || (category === 'unsorted' ? !r.category : r.category === category)) &&
       (!cuisine || r.cuisine.trim().toLowerCase() === cuisine) &&
@@ -153,13 +178,15 @@ export default function App() {
   }, [open, calendarOpen, share]);
 
   const close = useCallback(() => setOpen(null), []);
+  /** A new card is a restaurant from the start when restaurants are all that's in the box. */
+  const newDraft: Draft = showRestaurants && !showRecipes ? { kind: 'restaurant' } : {};
 
-  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {}, finish: settings?.stampFinish ?? 'plain' };
+  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {}, finish: settings?.stampFinish ?? 'plain', ateOutStyle: settings?.ateOutStyle ?? 'circle' };
   const closeShare = useCallback(() => setShare(null), []);
   const closeCalendar = useCallback(() => setCalendarOpen(false), []);
   const shareRecipe = share?.kind === 'recipe' ? recipes.find((r) => r.id === share.id) : undefined;
   const glow = GLOWS.find((g) => g.key === settings?.glowPalette) ?? GLOWS[0];
-  const shareContext = { recipeFont: settings?.recipeFont ?? 'hand', look: stampLook, glow: { warm: glow.warm, cool: glow.cool } };
+  const shareContext = { recipeFont: settings?.recipeFont ?? 'hand', look: stampLook, glow: { warm: glow.warm, cool: glow.cool }, show: kinds };
 
   const openRecipe = open?.kind === 'saved' ? recipes.find((r) => r.id === open.id) : undefined;
 
@@ -179,7 +206,7 @@ export default function App() {
         ) : (
           <div className="desk-row">
             <div className="desk-side is-left">
-              {(settings?.showNewCard ?? true) && <CardStack onAdd={() => setOpen({ kind: 'draft', draft: {} })} />}
+              {(settings?.showNewCard ?? true) && <CardStack onAdd={() => setOpen({ kind: 'draft', draft: newDraft })} />}
             </div>
 
             <Rolodex
@@ -201,7 +228,7 @@ export default function App() {
               index={index}
               onIndex={setIndex}
               onOpen={(r) => setOpen({ kind: 'saved', id: r.id })}
-              onNew={() => setOpen({ kind: 'draft', draft: {} })}
+              onNew={() => setOpen({ kind: 'draft', draft: newDraft })}
               emptyMessage={
                 loading
                   ? 'dusting off the cards…'
@@ -219,10 +246,10 @@ export default function App() {
       </main>
 
       <div className="spoon-desk">
-        <ActionTag icon="spoon" label="what I cooked" onClick={() => setCalendarOpen(true)} />
+        <ActionTag icon="spoon" label="what I ate" onClick={() => setCalendarOpen(true)} />
       </div>
 
-      {!loadError && recipes.length > 0 && <SurpriseTag onPick={surprise} cuisines={cuisines} />}
+      {!loadError && showRecipes && recipes.some((r) => r.kind !== 'restaurant') && <SurpriseTag onPick={surprise} cuisines={cuisines} />}
 
       <JamJar
         sortBy={sortBy}
@@ -230,6 +257,8 @@ export default function App() {
         recipeFont={settings?.recipeFont ?? 'hand'}
         onRecipeFont={(recipeFont) => changeSettings({ recipeFont })}
         desk={{ showNewCard: settings?.showNewCard ?? true, showFind: settings?.showFind ?? true }}
+        show={kinds}
+        onShow={changeSettings}
         onDesk={(patch) => {
           if (patch.showFind === false) find(''); // putting find away clears it, so nothing stays hidden
           changeSettings(patch);
@@ -279,9 +308,11 @@ export default function App() {
         <CalendarView
           paused={!!share}
           recipes={recipes}
+          show={kinds}
           look={stampLook}
           onClose={closeCalendar}
-          onOpenRecipe={(r) => { setCalendarOpen(false); setOpen({ kind: 'saved', id: r.id }); }}
+          onAteOutStyle={(ateOutStyle) => changeSettings({ ateOutStyle })}
+          onOpenRecipe={(r) => { setCalendarOpen(false); setOpen({ kind: 'saved', id: stampCardId(r) }); }}
           onFinish={(stampFinish) => changeSettings({ stampFinish })}
           onShare={(year, month, seed) => setShare({ kind: 'month', year, month, seed })}
         />
@@ -310,6 +341,8 @@ export default function App() {
       {open?.kind === 'draft' && (
         <Letter
           recipe={open.draft}
+          stampLook={stampLook}
+          canBeRestaurant={showRecipes && showRestaurants}
           isNew
           notice={open.notice}
           onImport={importLink}

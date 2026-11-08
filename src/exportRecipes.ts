@@ -4,7 +4,7 @@ import { api } from './api';
 
 /** A kept photo travels inside a .json backup as two data: links, so a backup brings the photos back too. */
 interface PhotoData { main: string; thumb: string }
-type BackupCard = Recipe & { photoData?: PhotoData };
+type BackupCard = Recipe & { photoData?: PhotoData; visitPhotoData?: (PhotoData | null)[] };
 
 const toDataUrl = (blob: Blob) =>
   new Promise<string>((resolve, reject) => {
@@ -31,22 +31,44 @@ function fromDataUrl(url: unknown): Blob | null {
   }
 }
 
-async function withPhotoData(r: Recipe): Promise<BackupCard> {
-  if (!r.photo) return r;
-  const [main, thumb] = await Promise.all([api.photo(r.photo, 'main'), api.photo(r.photo, 'thumb')]);
-  if (!main || !thumb) return r;
-  return { ...r, photoData: { main: await toDataUrl(main), thumb: await toDataUrl(thumb) } };
+async function photoPair(id: string | undefined): Promise<PhotoData | null> {
+  if (!id) return null;
+  const [main, thumb] = await Promise.all([api.photo(id, 'main'), api.photo(id, 'thumb')]);
+  return main && thumb ? { main: await toDataUrl(main), thumb: await toDataUrl(thumb) } : null;
 }
 
-/** A backed-up card's photo, kept again on this device; the card then points to it. */
+async function withPhotoData(r: Recipe): Promise<BackupCard> {
+  const own = await photoPair(r.photo);
+  // a restaurant's meals each carry the photo of the dish
+  const visitData = r.visits?.length ? await Promise.all(r.visits.map((v) => photoPair(v.photo))) : [];
+  return {
+    ...r,
+    ...(own ? { photoData: own } : {}),
+    ...(visitData.some(Boolean) ? { visitPhotoData: visitData } : {}),
+  };
+}
+
+async function restorePair(data: PhotoData | null | undefined): Promise<string> {
+  if (!data) return '';
+  const main = fromDataUrl(data.main);
+  const thumb = fromDataUrl(data.thumb);
+  return main && thumb ? api.savePhoto({ main, thumb }) : '';
+}
+
 async function restorePhoto(card: unknown): Promise<unknown> {
   if (!card || typeof card !== 'object') return card;
-  const { photoData, ...rest } = card as BackupCard;
-  if (!photoData) return rest;
-  const main = fromDataUrl(photoData.main);
-  const thumb = fromDataUrl(photoData.thumb);
-  if (!main || !thumb) return { ...rest, photo: '' };
-  return { ...rest, photo: await api.savePhoto({ main, thumb }) };
+  const { photoData, visitPhotoData, ...rest } = card as BackupCard;
+  const out: Record<string, unknown> = { ...rest };
+  if (photoData) out.photo = await restorePair(photoData);
+  if (Array.isArray(rest.visits)) {
+    out.visits = await Promise.all(rest.visits.map(async (v, i) => {
+      const { photo: _gone, ...visit } = (v ?? {}) as unknown as Record<string, unknown>;
+      void _gone;
+      const id = await restorePair(visitPhotoData?.[i]);
+      return id ? { ...visit, photo: id } : visit;
+    }));
+  }
+  return out;
 }
 
 function download(filename: string, data: unknown, type = 'application/json') {
@@ -119,36 +141,65 @@ export async function importFiles(files: File[], send: (payload: unknown) => Pro
 
 /** "added 3 recipes · 1 was already here" */
 export function importMessage({ added, skipped, invalid }: ImportSummary) {
-  const parts = [`added ${added.length} recipe${added.length === 1 ? '' : 's'}`];
+  const parts = [`added ${added.length} card${added.length === 1 ? '' : 's'}`];
   if (skipped) parts.push(`${skipped} already in the box`);
   if (invalid) parts.push(`${invalid} couldn’t be read`);
   return parts.join(' · ');
 }
 
-/** One recipe, ready to lay out in any format. */
+/** A titled list on a card: bullets, numbered steps, or plain paragraphs. */
+interface Part { title: string; items: string[]; style: 'bullets' | 'numbered' | 'paragraphs' }
+
+/** One card (a recipe or a restaurant), ready to lay out in any format. */
 function sections(r: Recipe) {
+  const source = r.sourceUrl ? { name: r.sourceName && r.sourceName !== 'sample card' ? r.sourceName : r.sourceUrl, url: r.sourceUrl } : null;
+  if (r.kind === 'restaurant') {
+    const meals = [...(r.visits ?? [])].sort((a, b) => a.date.localeCompare(b.date)).map((v) => `${v.date} — ${v.dish || 'a visit'}`);
+    return {
+      title: r.title,
+      details: [r.price, r.venue, r.location, r.cuisine, r.rating ? ratingLabel(r.rating) : ''].filter(Boolean).join(' · '),
+      source,
+      address: r.address ?? '',
+      note: '',
+      parts: [
+        { title: 'What we ate', items: meals, style: 'bullets' },
+        { title: 'Thoughts', items: r.review ? r.review.split('\n').filter(Boolean) : [], style: 'paragraphs' },
+      ] as Part[],
+    };
+  }
   const meal = CATEGORIES.find((c) => c.key === r.category)?.label;
   return {
     title: r.title,
     details: [meal, r.cuisine, r.totalTime, servesLabel(r.servings), r.rating ? ratingLabel(r.rating) : ''].filter(Boolean).join(' · '),
-    source: r.sourceUrl ? { name: r.sourceName && r.sourceName !== 'sample card' ? r.sourceName : r.sourceUrl, url: r.sourceUrl } : null,
+    source,
+    address: '',
     note: r.review,
-    ingredients: r.ingredients.map(abbreviateUnits),
-    steps: r.steps.map(stepText),
+    parts: [
+      { title: 'Ingredients', items: r.ingredients.map(abbreviateUnits), style: 'bullets' },
+      { title: 'Directions', items: r.steps.map(stepText), style: 'numbered' },
+    ] as Part[],
   };
 }
 
 const NONE = 'none written down yet';
 
-/** One recipe as markdown: title, a line of details, the note, ingredients, numbered directions. */
+/** One card as markdown: title, a line of details, the note, then its lists. */
 export function recipeToMarkdown(r: Recipe) {
   const c = sections(r);
   const out = [`# ${c.title}`];
   if (c.details) out.push(`*${c.details}*`);
+  if (c.address) out.push(`Address: ${c.address}`);
   if (c.source) out.push(`From [${c.source.name}](${c.source.url})`);
   if (c.note) out.push(c.note.split('\n').map((l) => `> ${l}`).join('\n'));
-  out.push('## Ingredients', c.ingredients.length ? c.ingredients.map((i) => `- ${i}`).join('\n') : `_${NONE}_`);
-  out.push('## Directions', c.steps.length ? c.steps.map((s, n) => `${n + 1}. ${s}`).join('\n') : `_${NONE}_`);
+  for (const part of c.parts) {
+    out.push(`## ${part.title}`);
+    out.push(
+      !part.items.length ? `_${NONE}_`
+        : part.style === 'numbered' ? part.items.map((s, n) => `${n + 1}. ${s}`).join('\n')
+          : part.style === 'paragraphs' ? part.items.join('\n\n')
+            : part.items.map((i) => `- ${i}`).join('\n'),
+    );
+  }
   return out.join('\n\n') + '\n';
 }
 
@@ -157,39 +208,49 @@ export function recipeToText(r: Recipe) {
   const c = sections(r);
   const out = [c.title.toUpperCase()];
   if (c.details) out.push(c.details);
+  if (c.address) out.push(`Address: ${c.address}`);
   if (c.source) out.push(`From ${c.source.name}: ${c.source.url}`);
   if (c.note) out.push(c.note);
-  out.push('INGREDIENTS\n' + (c.ingredients.length ? c.ingredients.map((i) => `- ${i}`).join('\n') : NONE));
-  out.push('DIRECTIONS\n' + (c.steps.length ? c.steps.map((s, n) => `${n + 1}. ${s}`).join('\n') : NONE));
+  for (const part of c.parts) {
+    out.push(
+      part.title.toUpperCase() + '\n' +
+        (!part.items.length ? NONE
+          : part.style === 'numbered' ? part.items.map((s, n) => `${n + 1}. ${s}`).join('\n')
+            : part.style === 'paragraphs' ? part.items.join('\n\n')
+              : part.items.map((i) => `- ${i}`).join('\n')),
+    );
+  }
   return out.join('\n\n') + '\n';
 }
 
-/** A Word document: one recipe per page. */
+/** A Word document: one card per page. */
 async function toDocx(recipes: Recipe[]) {
   const { Document, HeadingLevel, Packer, Paragraph, TextRun, ExternalHyperlink } = await import('docx');
   const children = recipes.flatMap((r, n) => {
     const c = sections(r);
-    const list = (items: string[], numbered: boolean) =>
-      items.length
-        ? items.map((t, i) => new Paragraph({ text: numbered ? `${i + 1}. ${t}` : t, bullet: numbered ? undefined : { level: 0 } }))
+    const list = (part: Part) =>
+      part.items.length
+        ? part.items.map((t, i) =>
+            new Paragraph({
+              text: part.style === 'numbered' ? `${i + 1}. ${t}` : t,
+              bullet: part.style === 'bullets' ? { level: 0 } : undefined,
+            }))
         : [new Paragraph({ children: [new TextRun({ text: NONE, italics: true })] })];
     return [
       new Paragraph({ text: c.title, heading: HeadingLevel.HEADING_1, pageBreakBefore: n > 0 }),
       ...(c.details ? [new Paragraph({ children: [new TextRun({ text: c.details, italics: true })] })] : []),
+      ...(c.address ? [new Paragraph({ children: [new TextRun(`Address: ${c.address}`)] })] : []),
       ...(c.source
         ? [new Paragraph({ children: [new TextRun('From '), new ExternalHyperlink({ link: c.source.url, children: [new TextRun({ text: c.source.name, style: 'Hyperlink' })] })] })]
         : []),
       ...(c.note ? [new Paragraph({ children: [new TextRun({ text: c.note, italics: true })], spacing: { before: 120 } })] : []),
-      new Paragraph({ text: 'Ingredients', heading: HeadingLevel.HEADING_2 }),
-      ...list(c.ingredients, false),
-      new Paragraph({ text: 'Directions', heading: HeadingLevel.HEADING_2 }),
-      ...list(c.steps, true),
+      ...c.parts.flatMap((part) => [new Paragraph({ text: part.title, heading: HeadingLevel.HEADING_2 }), ...list(part)]),
     ];
   });
   return Packer.toBlob(new Document({ sections: [{ children }] }));
 }
 
-/** A PDF: one recipe per page (more if it runs long). */
+/** A PDF: one card per page (more if it runs long). */
 async function toPdf(recipes: Recipe[]) {
   const { jsPDF } = await import('jspdf');
   const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
@@ -212,13 +273,16 @@ async function toPdf(recipes: Recipe[]) {
     const c = sections(r);
     write(c.title, 22, 'bold', 4);
     if (c.details) write(c.details, 11, 'italic', 2);
+    if (c.address) write(`Address: ${c.address}`, 10, 'normal', 2);
     if (c.source) write(`From ${c.source.name}`, 10, 'normal', 2);
     if (c.note) write(c.note, 11, 'italic', 6);
-    write('Ingredients', 14, 'bold', 2);
-    (c.ingredients.length ? c.ingredients : [NONE]).forEach((i) => write(c.ingredients.length ? `•  ${i}` : i, 11, 'normal'));
-    y += 10;
-    write('Directions', 14, 'bold', 2);
-    (c.steps.length ? c.steps : [NONE]).forEach((s, i) => write(c.steps.length ? `${i + 1}.  ${s}` : s, 11, 'normal', 3));
+    c.parts.forEach((part, k) => {
+      if (k > 0) y += 10;
+      write(part.title, 14, 'bold', 2);
+      if (!part.items.length) write(NONE, 11, 'normal');
+      part.items.forEach((t, i) =>
+        write(part.style === 'bullets' ? `•  ${t}` : part.style === 'numbered' ? `${i + 1}.  ${t}` : t, 11, 'normal', part.style === 'bullets' ? 0 : 3));
+    });
   });
   return pdf.output('blob');
 }

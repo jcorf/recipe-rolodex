@@ -9,6 +9,27 @@ export const CATEGORIES = [
 
 export type Category = (typeof CATEGORIES)[number]['key'];
 
+/** Restaurant prices, cheapest first. */
+export const PRICES = ['$', '$$', '$$$', '$$$+'] as const;
+export type Price = (typeof PRICES)[number];
+
+/** The kinds of place a restaurant card can be. */
+export const VENUES = [
+  { key: 'restaurant', label: 'restaurants' },
+  { key: 'bar', label: 'bars' },
+  { key: 'bakery', label: 'bakeries' },
+  { key: 'fast-casual', label: 'fast-casual' },
+] as const;
+export type Venue = (typeof VENUES)[number]['key'];
+
+/** One meal eaten at a restaurant: the day, and what was had (with a photo of it, if there is one). */
+export interface Visit {
+  date: string;
+  dish: string;
+  /** A photo of the dish kept by the store (its id). */
+  photo?: string;
+}
+
 export interface Recipe {
   id: string;
   title: string;
@@ -30,6 +51,17 @@ export interface Recipe {
   review: string;
   /** Days this was cooked, as YYYY-MM-DD, oldest first. */
   cooked?: string[];
+  /** 'restaurant' for a place eaten out; a recipe when missing. A restaurant uses `title` as its name,
+   *  `review` as the thoughts, `cuisine` and `rating` as they are, and the fields below. */
+  kind?: 'recipe' | 'restaurant';
+  price?: Price | '';
+  /** The city: what the "location" sort groups by. */
+  location?: string;
+  /** An extra line for the spot itself (a street, a neighbourhood). */
+  address?: string;
+  venue?: Venue | '';
+  /** Every meal eaten there, each with its day. */
+  visits?: Visit[];
   createdAt: string;
   updatedAt: string;
 }
@@ -37,7 +69,7 @@ export interface Recipe {
 /** A card that hasn't been saved yet (imported or written by hand). */
 export type Draft = Partial<Recipe>;
 
-export type SortBy = 'category' | 'rating' | 'time' | 'cuisine' | 'alpha';
+export type SortBy = 'category' | 'rating' | 'time' | 'cuisine' | 'alpha' | 'price' | 'location' | 'venue';
 
 export interface Settings {
   /** How the rolodex is divided: by meal, star rating, cooking time, cuisine or first letter. */
@@ -53,6 +85,11 @@ export interface Settings {
   showFind: boolean;
   /** The paper-flick sound when a card flips. */
   flipSound: boolean;
+  /** What's in the box: recipes (on unless put away) and restaurants (a feature to turn on). At least one stays on. */
+  showRecipes: boolean;
+  showRestaurants: boolean;
+  /** How a meal eaten out is stamped on the calendar, to tell it from cooking: a scalloped circle, or a bordered colour. */
+  ateOutStyle: AteOutStyle;
   /** How stamps on the calendar are finished: as printed, worn and speckled, or faded under a thin veil. */
   stampFinish: StampFinish;
   /** The name written at the top of the desk (click it to rewrite it). */
@@ -82,3 +119,21 @@ export const STAMP_FINISHES = [
   { key: 'faded', label: 'faded' },
 ] as const;
 export type StampFinish = (typeof STAMP_FINISHES)[number]['key'];
+
+/** A stamp on the calendar: a recipe cooked, or (when `ateOut`) one meal eaten at a restaurant. */
+export interface StampCard extends Recipe {
+  ateOut?: boolean;
+  /** For a meal eaten out: the restaurant card's own id (the stamp's `id` is unique to the visit). */
+  cardId?: string;
+  dish?: string;
+}
+
+/** Which kinds of card are in the box right now. */
+export interface Shown { recipes: boolean; restaurants: boolean }
+
+/** The two looks for a meal eaten out (a cooked dish is always a perforated rectangle). */
+export const ATE_OUT_STYLES = [
+  { key: 'circle', label: 'circle' },
+  { key: 'border', label: 'bordered' },
+] as const;
+export type AteOutStyle = (typeof ATE_OUT_STYLES)[number]['key'];

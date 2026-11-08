@@ -1,17 +1,37 @@
 // The rules a card and the settings must follow, whichever store keeps them.
 // (Moved from the old Express server so the app works without one.)
-import { CATEGORIES, GLOWS, STAMP_FINISHES, type Draft, type Recipe, type Settings } from '../types';
+import { ATE_OUT_STYLES, CATEGORIES, GLOWS, PRICES, STAMP_FINISHES, VENUES, type Draft, type Recipe, type Settings, type Visit } from '../types';
 import { SORT_OPTIONS } from '../sorting';
 
 const CATEGORY_KEYS: string[] = CATEGORIES.map((c) => c.key);
 
 const TEXT_FIELDS = [
-  'title', 'sourceUrl', 'sourceName', 'image', 'cuisine', 'servings', 'totalTime', 'description', 'review',
+  'title', 'sourceUrl', 'sourceName', 'image', 'cuisine', 'servings', 'totalTime', 'description', 'review', 'location', 'address',
 ] as const;
 
 /** Only web links (or nothing) for links that end up in an href or src. Blocks `javascript:` and the like. */
 function safeLink(value: string) {
   return value === '' || /^https?:\/\//i.test(value) ? value : '';
+}
+
+/** Meals eaten out: real days only, what was had, and a photo id if there is one. Oldest first. */
+function cleanVisits(value: unknown): Visit[] {
+  if (!Array.isArray(value)) return [];
+  const visits: Visit[] = [];
+  for (const v of value) {
+    if (!v || typeof v !== 'object') continue;
+    const { date, dish, photo } = v as Record<string, unknown>;
+    const day = String(date ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(day))) continue;
+    const id = photo == null ? '' : String(photo);
+    visits.push({ date: day, dish: String(dish ?? '').trim().slice(0, 120), ...(/^[a-z0-9-]{1,64}$/i.test(id) ? { photo: id } : {}) });
+  }
+  return visits.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Every kept photo a card points to: its own, and the ones on its visits. */
+export function photoIds(r: Pick<Recipe, 'photo' | 'visits'>): string[] {
+  return [r.photo, ...(r.visits ?? []).map((v) => v.photo)].filter((id): id is string => !!id);
 }
 
 /** Keeps only the fields a card has, each in the shape it should be. */
@@ -36,6 +56,10 @@ export function cleanRecipe(input: Record<string, unknown>): Draft {
       : [];
     out.cooked = [...new Set(days)].sort();
   }
+  if ('kind' in input) out.kind = input.kind === 'restaurant' ? 'restaurant' : 'recipe';
+  if ('price' in input) out.price = PRICES.includes(input.price as never) ? (input.price as Recipe['price']) : '';
+  if ('venue' in input) out.venue = VENUES.some((v) => v.key === input.venue) ? (input.venue as Recipe['venue']) : '';
+  if ('visits' in input) out.visits = cleanVisits(input.visits);
   if ('photo' in input) {
     const id = input.photo == null ? '' : String(input.photo);
     out.photo = /^[a-z0-9-]{1,64}$/i.test(id) ? id : '';
@@ -72,14 +96,14 @@ export function newRecipe(draft: Record<string, unknown>, now = new Date().toISO
     createdAt: now,
     updatedAt: now,
   };
-  if (!recipe.title) recipe.title = 'untitled recipe';
+  if (!recipe.title) recipe.title = recipe.kind === 'restaurant' ? 'untitled restaurant' : 'untitled recipe';
   return recipe;
 }
 
 /** A saved card with a patch applied. */
 export function patchRecipe(current: Recipe, patch: Record<string, unknown>): Recipe {
   const next = { ...current, ...cleanRecipe(patch), updatedAt: new Date().toISOString() };
-  if (!next.title) next.title = 'untitled recipe';
+  if (!next.title) next.title = next.kind === 'restaurant' ? 'untitled restaurant' : 'untitled recipe';
   return next;
 }
 
@@ -107,7 +131,7 @@ export function cardsToAdd(existing: Recipe[], payload: unknown) {
   let invalid = 0;
   for (const raw of importedCards(payload)) {
     const card = cleanRecipe(raw);
-    if (!card.title && !card.ingredients?.length && !card.steps?.length) { invalid++; continue; }
+    if (!card.title && !card.ingredients?.length && !card.steps?.length && !card.visits?.length) { invalid++; continue; }
     if ((typeof raw.id === 'string' && ids.has(raw.id)) || seen.has(sig(card))) { skipped++; continue; }
     const recipe = newRecipe(raw, now);
     seen.add(sig(recipe));
@@ -126,6 +150,9 @@ export const DEFAULT_SETTINGS: Settings = {
   showNewCard: true,
   showFind: true,
   flipSound: true,
+  showRecipes: true,
+  showRestaurants: false, // a feature to turn on
+  ateOutStyle: 'circle',
   stampFinish: 'plain',
   siteTitle: 'my recipes',
   glowPalette: 'peach',
@@ -141,8 +168,9 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 /** Saved settings filled out with the defaults (older saves may be missing newer settings). */
-export function withDefaults(saved: Partial<Settings> & { grainyStamps?: boolean } = {}): Settings {
-  const { grainyStamps, ...rest } = saved;
+export function withDefaults(saved: Partial<Settings> & { grainyStamps?: boolean; ateOutBorder?: boolean } = {}): Settings {
+  const { grainyStamps, ateOutBorder: _old, ...rest } = saved; // both were replaced by newer settings
+  void _old;
   return {
     ...DEFAULT_SETTINGS,
     ...rest,
@@ -194,14 +222,19 @@ export function applySettings(current: Settings, patch: Partial<Settings>): Sett
     if (!STAMP_FINISHES.some((f) => f.key === patch.stampFinish)) fail('Pick plain, grainy or faded.');
     next.stampFinish = patch.stampFinish;
   }
+  if (patch.ateOutStyle !== undefined) {
+    if (!ATE_OUT_STYLES.some((s) => s.key === patch.ateOutStyle)) fail('Pick a circle or a bordered stamp.');
+    next.ateOutStyle = patch.ateOutStyle;
+  }
   if (patch.glowPalette !== undefined) {
     if (!GLOWS.some((g) => g.key === patch.glowPalette)) fail('Pick a glow from the list.');
     next.glowPalette = patch.glowPalette;
   }
-  for (const key of ['showNewCard', 'showFind', 'flipSound'] as const) {
+  for (const key of ['showNewCard', 'showFind', 'flipSound', 'showRecipes', 'showRestaurants'] as const) {
     if (patch[key] === undefined) continue;
     if (typeof patch[key] !== 'boolean') fail(`${key} must be true or false.`);
     next[key] = patch[key];
   }
+  if (!next.showRecipes && !next.showRestaurants) fail('Keep recipes or restaurants in the box: it can’t hold neither.');
   return next;
 }

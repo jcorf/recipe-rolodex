@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { GLOWS, type GlowKey, type Settings, type SortBy } from '../types';
-import { SORT_OPTIONS } from '../sorting';
+import { GLOWS, type GlowKey, type Settings, type Shown, type SortBy } from '../types';
+import { sortOptionsFor } from '../sorting';
 import { useDismiss } from '../useDismiss';
 import { PenCircle } from './ink';
 import { PenIcon } from './PenIcons';
@@ -23,6 +23,12 @@ const DESK: { key: 'showNewCard' | 'showFind'; label: string }[] = [
   { key: 'showFind', label: 'find' },
 ];
 
+/** What goes in the box. Restaurants are a feature you turn on; one of the two always stays on. */
+const IN_BOX: { key: 'showRecipes' | 'showRestaurants'; label: string }[] = [
+  { key: 'showRecipes', label: 'recipes' },
+  { key: 'showRestaurants', label: 'restaurants' },
+];
+
 /** The "?" card: how the desk works, and why it exists. */
 function HelpNote() {
   return (
@@ -34,8 +40,10 @@ function HelpNote() {
         <li><b>new card</b>: pull one from the stack. paste a link on the first line and it fills itself in.</li>
         <li><b>find</b>: looks through names, meals, cuisines and ingredients.</li>
         <li><b>surprise me</b> picks something you haven’t cooked yet. its little arrow narrows it by meal or cuisine.</li>
+        <li><b>in the box</b> chooses what the rolodex holds: recipes, restaurants, or both. restaurants are off until you turn them on. a restaurant card keeps its price, kind of place, city (and an extra line for the address), plus every meal you ate there with the day (and a photo of the dish), and your thoughts. forgot a meal? tap it on the card to add what you had, its photo, or move its day. sort by price, location or kind of place once they’re in.</li>
+        <li>tap a card’s <b>photo</b> to crop, move and zoom it, even when you aren’t editing. no photo yet? tap the light plus.</li>
         <li><b>cooked it?</b> open a card and press the stamp tag, then tap the day. tap a stamped day again to lift the stamp off.</li>
-        <li><b>the spoon</b> (top right) opens the calendar: a stamp of each dish on the day you cooked it. flip months with the arrows or ← →, tap a stamp to open the recipe, and press t (or tap “today”) to come back to this month. under the month, choose plain, grainy or faded stamps; the dice deals new ones on days with more than two.</li>
+        <li><b>the spoon</b> (top right) opens the calendar: a stamp of each dish on the day you cooked it. meals you ate out are stamped too, as a scalloped circle or a bordered colour (you choose, under the month). flip months with the arrows or ← →, tap a stamp to open the recipe, and press t (or tap “today”) to come back to this month. under the month, choose plain, grainy or faded stamps; the dice deals new ones on days with more than two.</li>
         <li><b>share</b> a card as a picture to send, copy or save. from the calendar you can share the month, any seven days in a row (step the start day with the arrows; the double arrows jump a week), or one day with all its stamps scattered together.</li>
         <li>click the <b>name at the top</b> to rename your box.</li>
         <li>click a <b>fruit</b> to swap it for another.</li>
@@ -52,7 +60,7 @@ function HelpNote() {
 }
 
 export function JamJar({
-  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, exportFormat, onExportFormat, onImportFiles, flipSound, onFlipSound, glowPalette, onGlowPalette,
+  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, show, onShow, onExportAll, exportFormat, onExportFormat, onImportFiles, flipSound, onFlipSound, glowPalette, onGlowPalette,
 }: {
   sortBy: SortBy;
   onSortBy: (sortBy: SortBy) => void;
@@ -61,6 +69,9 @@ export function JamJar({
   /** Which desk objects are out (circled) or put away. */
   desk: Pick<Settings, 'showNewCard' | 'showFind'>;
   onDesk: (patch: Partial<Pick<Settings, 'showNewCard' | 'showFind'>>) => void;
+  /** Which kinds of card are in the box, and a way to change that. */
+  show: Shown;
+  onShow: (patch: Partial<Pick<Settings, 'showRecipes' | 'showRestaurants'>>) => void;
   /** Save every recipe in the chosen format. */
   onExportAll: () => void;
   /** .json backs up (and can be added back); .md is readable text. Cards use the same choice. */
@@ -104,7 +115,7 @@ export function JamJar({
             {help ? <HelpNote /> : (<>
             <div role="radiogroup" aria-labelledby="sort-title">
             <span id="sort-title" className="pop-title">sort the box by</span>
-            {SORT_OPTIONS.map((o, i) => (
+            {sortOptionsFor(show).map((o, i) => (
               <label key={o.key} className={`sort-option ${o.key === sortBy ? 'is-chosen' : ''}`}>
                 <input
                   type="radio"
@@ -119,6 +130,29 @@ export function JamJar({
                 </span>
               </label>
             ))}
+            </div>
+            <div role="group" aria-labelledby="box-title" className="setting-group">
+              <span id="box-title" className="pop-title">in the box</span>
+              {IN_BOX.map((o, i) => {
+                const on = o.key === 'showRecipes' ? show.recipes : show.restaurants;
+                const other = o.key === 'showRecipes' ? show.restaurants : show.recipes;
+                const last = on && !other; // the box can't be empty of both
+                return (
+                  <label key={o.key} className={`sort-option ${on ? 'is-chosen' : ''} ${last ? 'is-locked' : ''}`}>
+                    <input
+                      type="checkbox"
+                      className="visually-hidden"
+                      checked={on}
+                      disabled={last}
+                      onChange={(e) => onShow({ [o.key]: e.target.checked })}
+                    />
+                    <span className="sort-label">
+                      {o.label}
+                      {on && <PenCircle variant={i + 3} />}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
             <div role="radiogroup" aria-labelledby="writing-title" className="setting-group">
               <span id="writing-title" className="pop-title">recipe writing</span>

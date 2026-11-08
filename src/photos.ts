@@ -77,3 +77,30 @@ export async function makePhoto(file: Blob): Promise<PhotoFiles> {
     if ('close' in source) source.close();
   }
 }
+
+/** The part of a picture to keep, in the picture's own pixels. */
+export interface CropRect { sx: number; sy: number; sw: number; sh: number }
+
+/** One copy of just `rect`, no longer than `px` on its long side (and never blown up past its own pixels). */
+async function shrinkRegion(source: CanvasImageSource, rect: CropRect, px: number): Promise<Blob> {
+  const k = Math.min(1, px / Math.max(rect.sw, rect.sh));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(rect.sw * k));
+  canvas.height = Math.max(1, Math.round(rect.sh * k));
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.fillStyle = '#fdfdfb';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(source, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, canvas.width, canvas.height);
+  const webp = await toBlob(canvas, 'image/webp');
+  if (webp && webp.type === 'image/webp') return webp;
+  const jpeg = await toBlob(canvas, 'image/jpeg');
+  if (!jpeg) throw new Error('Couldn’t save that crop.');
+  return jpeg;
+}
+
+/** The two copies to keep of a cropped, zoomed photo (the same sizes as a freshly picked one). */
+export async function cropPhoto(source: CanvasImageSource, rect: CropRect): Promise<PhotoFiles> {
+  const [main, thumb] = await Promise.all([shrinkRegion(source, rect, MAIN_PX), shrinkRegion(source, rect, THUMB_PX)]);
+  return { main, thumb };
+}

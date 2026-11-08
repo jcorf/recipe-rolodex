@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CATEGORIES, type Category, type Draft, type Recipe } from '../types';
+import { CATEGORIES, PRICES, VENUES, type Category, type Draft, type Price, type Recipe, type Venue, type Visit } from '../types';
+import { shortDay } from '../dates';
 import { servesLabel, splitAmount, stepText } from '../recipeText';
-import { cardLook, InkFrame, InkRule } from './ink';
+import { cardLook, InkFrame, InkRule, PenCircle } from './ink';
 import { HOLDER } from './inkPaths';
 import { ActionTag, FORM_ID } from './ActionTag';
 import { GinghamBow, PatchHeart } from './Stickers';
@@ -10,7 +11,11 @@ import { InkSelect } from './InkSelect';
 import { CookedPop } from './CookedPop';
 import type { StampLook } from './MonthGrid';
 import { useDismiss } from '../useDismiss';
-import { addPhoto, usePhotoSrc } from '../usePhoto';
+import { editableSource, photoUrl, savePhotoFiles, usePhotoSrc } from '../usePhoto';
+import { makePhoto, type PhotoFiles } from '../photos';
+import { PenIcon } from './PenIcons';
+import { PhotoEditor } from './PhotoEditor';
+import { VisitPop, VisitThumb } from './VisitPop';
 
 /**
  * The open recipe: the rolodex card pulled out of the box and enlarged, standing in a
@@ -33,6 +38,8 @@ interface Props {
   /** Saved cards only: how stamps look on the desk, and share this card as a picture. */
   stampLook?: StampLook;
   onShare?: () => void;
+  /** Restaurants are turned on: a new card can be a restaurant as well as a recipe. */
+  canBeRestaurant?: boolean;
 }
 
 interface Form {
@@ -47,6 +54,11 @@ interface Form {
   sourceUrl: string;
   ingredients: string;
   steps: string;
+  /** Restaurants: how much, what kind of place, and where. */
+  price: Price | '';
+  venue: Venue | '';
+  location: string;
+  address: string;
 }
 
 const toForm = (r: Draft): Form => ({
@@ -60,6 +72,10 @@ const toForm = (r: Draft): Form => ({
   sourceUrl: r.sourceUrl ?? '',
   ingredients: (r.ingredients ?? []).join('\n'),
   steps: (r.steps ?? []).join('\n'),
+  price: r.price ?? '',
+  venue: r.venue ?? '',
+  location: r.location ?? '',
+  address: r.address ?? '',
 });
 
 const lines = (text: string) => text.split('\n').map((s) => s.trim()).filter(Boolean);
@@ -76,7 +92,7 @@ function sourceLabel(r: Draft) {
 
 const isLink = (text: string) => /^https?:\/\/\S+$/i.test(text.trim());
 
-export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onClose, onExport, exportLabel = 'export card', stampLook, onShare }: Props) {
+export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onClose, onExport, exportLabel = 'export card', stampLook, onShare, canBeRestaurant = false }: Props) {
   const [editing, setEditing] = useState(isNew);
   const [form, setForm] = useState<Form>(() => toForm(recipe));
   const [rating, setRating] = useState(recipe.rating ?? 0);
@@ -95,6 +111,16 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
   const fileRef = useRef<HTMLInputElement>(null);
   const [addingPhoto, setAddingPhoto] = useState(false);
   const actionsRef = useRef<HTMLElement>(null);
+  /** The photo editor: the picture it's showing (and the copy to throw away afterwards, for a fresh pick). */
+  const [editor, setEditor] = useState<{ src: string; own: boolean } | null>(null);
+  const [kind, setKind] = useState<'recipe' | 'restaurant'>(recipe.kind ?? 'recipe');
+  const [visits, setVisits] = useState<Visit[]>(recipe.visits ?? []);
+  const [visitsOpen, setVisitsOpen] = useState(false);
+  const visitsRef = useRef<HTMLDivElement>(null);
+  const closeVisits = useCallback(() => setVisitsOpen(false), []);
+  const visitRefs = useMemo(() => [actionsRef, visitsRef], []);
+  useDismiss(visitsOpen, visitRefs, closeVisits);
+  const isOut = kind === 'restaurant';
   const [cookedOpen, setCookedOpen] = useState(false);
   const cookedRef = useRef<HTMLDivElement>(null);
   const closeCooked = useCallback(() => setCookedOpen(false), []);
@@ -158,6 +184,8 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
         steps: lines(form.steps),
         rating,
         review,
+        kind,
+        ...(isOut ? { price: form.price, venue: form.venue, location: form.location, address: form.address, visits } : {}),
       });
       if (!isNew) setEditing(false);
     });
@@ -183,10 +211,12 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
       titleRef.current?.focus();
     }
   }
-  const titleLink = isNew && onImport;
+  const titleLink = isNew && onImport && !isOut; // a pasted link fills in a recipe, not a restaurant
 
   const cancelEdit = () => {
     setForm(toForm(recipe));
+    setKind(recipe.kind ?? 'recipe');
+    setVisits(recipe.visits ?? []);
     setReview(recipe.review ?? '');
     setConfirmTear(false);
     setEditing(false);
@@ -199,21 +229,45 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
   const source = sourceLabel(shown);
   const photoSrc = usePhotoSrc(shown, 'thumb');
 
-  // a photo from this device: shrunk and kept straight away; the card points to it once it's saved
+  // a photo from this device is shrunk, then opened in the editor to crop and zoom; nothing is kept until "keep it"
   const pickPhoto = async (file: File | undefined) => {
     if (!file) return;
     setAddingPhoto(true);
     setError('');
     try {
-      const id = await addPhoto(file);
-      setForm((f) => ({ ...f, photo: id }));
+      const { main } = await makePhoto(file);
+      setEditor({ src: URL.createObjectURL(main), own: true });
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setAddingPhoto(false);
     }
   };
-  const meta = [shown.totalTime, servesLabel(shown.servings), shown.cuisine].filter(Boolean);
+  /** Clicking the polaroid crops and zooms the card's photo, in or out of edit mode. */
+  const editPhoto = async () => {
+    setError('');
+    const src = await editableSource(editing ? { photo: form.photo, image: form.image } : { photo: recipe.photo, image: recipe.image });
+    if (src) setEditor({ src, own: false });
+    else setError('Couldn’t open that photo to edit it. Try “change” to pick it again.');
+  };
+  const closeEditor = () => {
+    if (editor?.own) URL.revokeObjectURL(editor.src);
+    setEditor(null);
+  };
+  const keepPhoto = async (files: PhotoFiles) => {
+    const id = await savePhotoFiles(files);
+    setForm((f) => ({ ...f, photo: id }));
+    // outside edit mode the photo goes straight onto the saved card, like a rating
+    if (!editing && !isNew) await onSave({ photo: id });
+    closeEditor();
+  };
+  const hasPhoto = !!photoSrc;
+  void photoUrl;
+  const liveVisits = editing || isNew ? visits : recipe.visits ?? [];
+  const sortedVisits = [...liveVisits].sort((a, b) => b.date.localeCompare(a.date));
+  const meta = isOut
+    ? [shown.price, shown.venue, shown.location, shown.cuisine].filter(Boolean)
+    : [shown.totalTime, servesLabel(shown.servings), shown.cuisine].filter(Boolean);
 
   return (
     <>
@@ -223,7 +277,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
       className="letter-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label={recipe.title || 'New recipe card'}
+      aria-label={recipe.title || (isOut ? 'New restaurant card' : 'New recipe card')}
       // a click anywhere off the card tucks it back (not while editing, so a stray click can't lose changes,
       // unless it's a new card that's still blank)
       onPointerDown={(e) => {
@@ -241,16 +295,30 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
 
             <header className="open-header">
               <div className="open-heading">
+                {editing && isNew && canBeRestaurant && (
+                  <div role="radiogroup" aria-label="What kind of card" className="kind-toggle">
+                    <span>this card is a</span>
+                    {([['recipe', 'recipe'], ['restaurant', 'restaurant']] as const).map(([value, label], i) => (
+                      <label key={value} className={`sort-option ${kind === value ? 'is-chosen' : ''}`}>
+                        <input type="radio" name="card-kind" className="visually-hidden" checked={kind === value} onChange={() => setKind(value)} />
+                        <span className="sort-label">
+                          {label}
+                          {kind === value && <PenCircle variant={i + 1} />}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
                 {editing ? (
                   <input
                     ref={titleRef}
                     className="ink-input open-title-input"
                     value={form.title}
                     onChange={set('title')}
-                    placeholder={importing ? 'fetching…' : titleLink ? 'paste a link, or write a name…' : 'recipe name'}
+                    placeholder={importing ? 'fetching…' : titleLink ? 'paste a link, or write a name…' : isOut ? 'restaurant name' : 'recipe name'}
                     disabled={importing}
                     required
-                    aria-label={titleLink ? 'Recipe name, or paste a link to fill the card in' : 'Recipe name'}
+                    aria-label={titleLink ? 'Recipe name, or paste a link to fill the card in' : isOut ? 'Restaurant name' : 'Recipe name'}
                     onPaste={(e) => {
                       const text = e.clipboardData.getData('text');
                       if (titleLink && isLink(text)) {
@@ -274,56 +342,89 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
 
                 {editing ? (
                   <div className="meta-fields">
-                    <label>
-                      filed under
-<InkSelect
-                        label="Filed under"
-                        value={form.category}
-                        onChange={(category) => setForm((f) => ({ ...f, category: category as Category | '' }))}
-                        options={[{ value: '', label: 'unsorted' }, ...CATEGORIES.map((c) => ({ value: c.key, label: c.label }))]}
-                      />
-                    </label>
-                    <label>time <input className="ink-input" value={form.totalTime} onChange={set('totalTime')} placeholder="e.g. 30 min" /></label>
-                    <label>serves <input className="ink-input" value={form.servings} onChange={set('servings')} placeholder="e.g. 4" /></label>
-                    <label>cuisine <input className="ink-input" value={form.cuisine} onChange={set('cuisine')} placeholder="e.g. italian" /></label>
+                    {isOut ? (
+                      <>
+                        <label>
+                          price
+                          <InkSelect
+                            label="Price"
+                            value={form.price}
+                            onChange={(price) => setForm((f) => ({ ...f, price: price as Price | '' }))}
+                            options={[{ value: '', label: 'not sure' }, ...PRICES.map((p) => ({ value: p, label: p }))]}
+                          />
+                        </label>
+                        <label>
+                          kind of place
+                          <InkSelect
+                            label="Kind of place"
+                            value={form.venue}
+                            onChange={(venue) => setForm((f) => ({ ...f, venue: venue as Venue | '' }))}
+                            options={[{ value: '', label: 'unsorted' }, ...VENUES.map((v) => ({ value: v.key, label: v.key }))]}
+                          />
+                        </label>
+                        <label>city <input className="ink-input" value={form.location} onChange={set('location')} placeholder="e.g. new york" /></label>
+                        <label>cuisine <input className="ink-input" value={form.cuisine} onChange={set('cuisine')} placeholder="e.g. italian" /></label>
+                      </>
+                    ) : (
+                      <>
+                        <label>
+                          filed under
+                          <InkSelect
+                            label="Filed under"
+                            value={form.category}
+                            onChange={(category) => setForm((f) => ({ ...f, category: category as Category | '' }))}
+                            options={[{ value: '', label: 'unsorted' }, ...CATEGORIES.map((c) => ({ value: c.key, label: c.label }))]}
+                          />
+                        </label>
+                        <label>time <input className="ink-input" value={form.totalTime} onChange={set('totalTime')} placeholder="e.g. 30 min" /></label>
+                        <label>serves <input className="ink-input" value={form.servings} onChange={set('servings')} placeholder="e.g. 4" /></label>
+                        <label>cuisine <input className="ink-input" value={form.cuisine} onChange={set('cuisine')} placeholder="e.g. italian" /></label>
+                      </>
+                    )}
                   </div>
                 ) : (
-                  meta.length > 0 && <p className="open-meta">{meta.join('  ·  ')}</p>
+                  <>
+                    {meta.length > 0 && <p className="open-meta">{meta.join('  ·  ')}</p>}
+                    {isOut && shown.address && <p className="open-address">{shown.address}</p>}
+                  </>
+                )}
+                {editing && isOut && (
+                  <label className="address-line">address <input className="ink-input" value={form.address} onChange={set('address')} placeholder="a street or a neighbourhood (optional)" /></label>
                 )}
               </div>
 
-              {(photoSrc || editing) && (
-                <figure className={`mini-polaroid ${photoSrc ? '' : 'is-empty'}`}>
-                  <GinghamBow className="mini-polaroid-bow" />
-                  {photoSrc ? (
-                    <img src={photoSrc} alt={`Photo of ${shown.title || 'this recipe'}`} />
-                  ) : (
-                    <button type="button" className="mini-polaroid-add" onClick={() => fileRef.current?.click()} disabled={addingPhoto}>
-                      {addingPhoto ? 'developing…' : 'add a photo'}
+              <figure className={`mini-polaroid ${hasPhoto ? 'has-photo' : 'is-empty'}`}>
+                <GinghamBow className="mini-polaroid-bow" />
+                {hasPhoto ? (
+                  // a click crops and zooms the photo, whether or not the card is being edited
+                  <button type="button" className="mini-polaroid-photo" onClick={editPhoto} aria-label={`Crop and zoom the photo of ${shown.title || 'this card'}`}>
+                    <img src={photoSrc} alt={`Photo of ${shown.title || 'this card'}`} />
+                  </button>
+                ) : (
+                  // a light plus where there's no photo yet (only on the page: a shared picture leaves the polaroid out)
+                  <button type="button" className="mini-polaroid-add" onClick={() => fileRef.current?.click()} disabled={addingPhoto} aria-label="Add a photo">
+                    {addingPhoto ? <span>developing…</span> : <PenIcon name="plus" />}
+                  </button>
+                )}
+                {editing && hasPhoto && (
+                  <figcaption className="mini-polaroid-actions">
+                    <button type="button" onClick={() => fileRef.current?.click()} disabled={addingPhoto}>
+                      {addingPhoto ? 'developing…' : 'change'}
                     </button>
-                  )}
-                  {editing && photoSrc && (
-                    <figcaption className="mini-polaroid-actions">
-                      <button type="button" onClick={() => fileRef.current?.click()} disabled={addingPhoto}>
-                        {addingPhoto ? 'developing…' : 'change'}
-                      </button>
-                      {form.photo && <button type="button" onClick={() => setForm((f) => ({ ...f, photo: '' }))}>remove</button>}
-                    </figcaption>
-                  )}
-                  {editing && (
-                    <input
-                      ref={fileRef}
-                      type="file"
-                      accept="image/*"
-                      hidden
-                      onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }}
-                    />
-                  )}
-                </figure>
-              )}
+                    {form.photo && <button type="button" onClick={() => setForm((f) => ({ ...f, photo: '' }))}>remove</button>}
+                  </figcaption>
+                )}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }}
+                />
+              </figure>
             </header>
 
-            {editing ? (
+            {isOut ? null : editing ? (
               <label className="review">
                 <span className="visually-hidden">Your note</span>
                 <textarea
@@ -340,6 +441,46 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
 
             <InkRule variant={look.rule} />
 
+            {isOut ? (
+              <div className="open-columns">
+                <section>
+                  <h2 className="card-col-title">what we ate</h2>
+                  {sortedVisits.length ? (
+                    <ul className="card-ingredients visit-rows">
+                      {sortedVisits.map((v, n) => (
+                        <li
+                          key={n}
+                          // tap a meal to open the visits and fix it (what you had, its photo, its day)
+                          className={editing ? '' : 'is-link'}
+                          role={editing ? undefined : 'button'}
+                          tabIndex={editing ? undefined : 0}
+                          onClick={editing ? undefined : () => stampLook && setVisitsOpen(true)}
+                          onKeyDown={editing ? undefined : (e) => { if (e.key === 'Enter') setVisitsOpen(true); }}
+                        >
+                          <span className="amt">{shortDay(v.date)}</span>
+                          <span>{v.dish || 'a visit'}<VisitThumb photo={v.photo} label={v.dish || 'the dish'} /></span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="card-col-empty">no visits written down yet</p>
+                  )}
+                  {editing && (
+                    <button type="button" className="today-link add-visit" onClick={() => setVisitsOpen(true)}>+ add a visit</button>
+                  )}
+                </section>
+                <section>
+                  <h2 className="card-col-title">thoughts</h2>
+                  {editing ? (
+                    <textarea className="ink-area hand-area" value={review} onChange={(e) => setReview(e.target.value)} rows={Math.max(4, review.split('\n').length + 2)} placeholder="how was it? what would you order again?" aria-label="Your thoughts" />
+                  ) : review ? (
+                    <p className="review-text thoughts-text">{review}</p>
+                  ) : (
+                    <p className="card-col-empty">nothing written down yet</p>
+                  )}
+                </section>
+              </div>
+            ) : (
             <div className="open-columns">
               <section>
                 <h2 className="card-col-title">ingredients</h2>
@@ -368,17 +509,21 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
               </section>
             </div>
 
+            )}
+
             {editing && (
               <div className="link-fields">
                 <label>photo link <input ref={photoRef} className="ink-input" value={form.image} onChange={set('image')} placeholder="https://…/photo.jpg" inputMode="url" /></label>
-                <label>original recipe <input className="ink-input" value={form.sourceUrl} onChange={set('sourceUrl')} placeholder="https://…" inputMode="url" /></label>
+                <label>{isOut ? 'website' : 'original recipe'} <input className="ink-input" value={form.sourceUrl} onChange={set('sourceUrl')} placeholder="https://…" inputMode="url" /></label>
               </div>
             )}
 
             <p className="signoff">
               xo,{' '}
               {shown.sourceUrl ? (
-                <a href={shown.sourceUrl} target="_blank" rel="noreferrer">from {source || 'the original'}</a>
+                <a href={shown.sourceUrl} target="_blank" rel="noreferrer">{isOut ? `from ${source || 'their website'}` : `from ${source || 'the original'}`}</a>
+              ) : isOut ? (
+                <span>from {shown.location || 'a night out'}</span>
               ) : (
                 <span>from my own kitchen</span>
               )}
@@ -401,16 +546,27 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
       <nav ref={actionsRef} className="card-actions" aria-label="Card actions">
         {!editing && !confirmTear && (
           <>
-            <ActionTag icon="edit" label="edit card" onClick={() => { closeCooked(); setEditing(true); }} />
-            {!isNew && stampLook && <ActionTag icon="stamp" label="I cooked this" onClick={() => setCookedOpen((o) => !o)} />}
-            {!isNew && onExport && <ActionTag icon="export" label={exportLabel} onClick={() => { closeCooked(); onExport(); }} />}
-            {!isNew && onShare && <ActionTag icon="share" label="share card" onClick={() => { closeCooked(); onShare(); }} />}
+            <ActionTag icon="edit" label="edit card" onClick={() => { closeCooked(); closeVisits(); setVisits(recipe.visits ?? []); setEditing(true); }} />
+            {!isNew && stampLook && !isOut && <ActionTag icon="stamp" label="I cooked this" onClick={() => setCookedOpen((o) => !o)} />}
+            {!isNew && stampLook && isOut && <ActionTag icon="stamp" label="I ate here" onClick={() => setVisitsOpen((o) => !o)} />}
+            {!isNew && onExport && <ActionTag icon="export" label={exportLabel} onClick={() => { closeCooked(); closeVisits(); onExport(); }} />}
+            {!isNew && onShare && <ActionTag icon="share" label="share card" onClick={() => { closeCooked(); closeVisits(); onShare(); }} />}
             {!isNew && (
               <ActionTag icon="tear" label="tear up card" tone="quiet" onClick={() => setConfirmTear(true)} />
             )}
           </>
         )}
-        {cookedOpen && !editing && !confirmTear && !isNew && stampLook && (
+        {visitsOpen && !confirmTear && stampLook && isOut && (
+          <VisitPop
+            innerRef={visitsRef}
+            restaurant={recipe as Recipe}
+            visits={liveVisits}
+            look={stampLook}
+            // a saved card is written on straight away, like a rating; one being edited keeps it for "save card"
+            onChange={(next) => (editing || isNew ? setVisits(next) : run(() => onSave({ visits: next })))}
+          />
+        )}
+        {cookedOpen && !editing && !confirmTear && !isNew && stampLook && !isOut && (
           <CookedPop innerRef={cookedRef} recipe={recipe as Recipe} look={stampLook} onChange={(cooked) => run(() => onSave({ cooked }))} />
         )}
         {editing && !confirmTear && (
@@ -430,6 +586,8 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
           </div>
         )}
       </nav>
+
+      {editor && <PhotoEditor src={editor.src} title={shown.title || 'this card'} onDone={keepPhoto} onCancel={closeEditor} />}
     </>
   );
 }

@@ -3,6 +3,7 @@ import { MONTH_NAMES, addDays, longDate, rangeLabel, todayYmd, weekdayName } fro
 import type { Recipe } from '../types';
 import { fileSlug, renderDayImage, renderMonthImage, renderWeekImage, type ShareContext } from '../shareImage';
 import { PenCircle } from './ink';
+import { stampsByDay } from '../stamps';
 import { PenIcon } from './PenIcons';
 import { ShareSheet } from './ShareSheet';
 
@@ -44,8 +45,8 @@ export function CalendarShare({
   const today = todayYmd();
   // the day to start on: the latest one with a stamp (up to today), so the picture isn't empty
   const latestCooked = useMemo(
-    () => [...new Set(recipes.flatMap((r) => r.cooked ?? []))].filter((d) => d <= today).sort().pop(),
-    [recipes, today],
+    () => [...stampsByDay(recipes, context.show ?? { recipes: true, restaurants: true }).keys()].filter((d) => d <= today).sort().pop(),
+    [recipes, today, context.show],
   );
   const [page, setPage] = useState<Page>('month');
   const [weekStart, setWeekStart] = useState(addDays(today, -6)); // the last seven days, ending today
@@ -63,21 +64,21 @@ export function CalendarShare({
     if (page === 'week') {
       const end = addDays(weekStart, 6);
       return {
-        title: `${rangeLabel(weekStart, end)}, what I cooked`,
-        filename: `cooked-week-${weekStart}.png`,
+        title: `${rangeLabel(weekStart, end)}, what I ate`,
+        filename: `ate-week-${weekStart}.png`,
         render: (white: boolean) => renderWeekImage(weekStart, recipes, { ...context, white }, look),
       };
     }
     if (page === 'day') {
       return {
-        title: `${weekdayName(day)} ${longDate(day)}, what I cooked`,
-        filename: `cooked-day-${day}.png`,
+        title: `${weekdayName(day)} ${longDate(day)}, what I ate`,
+        filename: `ate-day-${day}.png`,
         render: (white: boolean) => renderDayImage(day, recipes, { ...context, white }, look),
       };
     }
     return {
-      title: `${MONTH_NAMES[month]} ${year}, what I cooked`,
-      filename: `cooked-${year}-${String(month + 1).padStart(2, '0')}.png`,
+      title: `${MONTH_NAMES[month]} ${year}, what I ate`,
+      filename: `ate-${year}-${String(month + 1).padStart(2, '0')}.png`,
       render: (white: boolean) => renderMonthImage(year, month, recipes, { ...context, white }, look),
     };
   })();

@@ -366,9 +366,10 @@ button:disabled { cursor: default; }
 /* not enough room beside the rolodex: the stack and the slip sit in a row above it */
 @media (max-width: 72rem) {
   .desk-row {
-    grid-template-columns: auto auto;
+    /* two equal halves that fill the row, so the rolodex below keeps its full width whether the
+       blank-card stack and the find slip are out or put away (auto columns shrank to nothing) */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: "stack find" "box box";
-    justify-content: center;
     row-gap: 0.5rem;
   }
   .desk-side { padding-top: 0.5rem; }
@@ -1786,6 +1787,126 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 .share-backdrop .sort-option { display: inline-block; padding: 0 0.1rem; color: var(--ink); }
 /* the note sits on the picture's top edge and never takes a click: the choices sit below it */
 .share-picture .letter-notice { position: absolute; left: 50%; top: 1.2rem; translate: -50% 0; margin: 0; white-space: nowrap; pointer-events: none; }
+
+.card-tab.is-restaurant { display: grid; place-items: center; width: 2.9rem; }
+.card-tab.is-restaurant .pen-icon { width: 1rem; height: 1rem; margin-top: 0.1rem; color: var(--ink); }
+.card-thoughts { margin: 0; color: var(--ink); white-space: pre-line; } /* takes the recipe writing of its column */
+
+/* ───────── restaurants, visits and the photo editor ───────── */
+.is-locked { opacity: 0.7; cursor: default; } /* the last kind left in the box can't be put away */
+.open-address { margin: 0.1rem 0 0; font-family: var(--script); font-size: 0.85rem; line-height: 1.5; color: var(--ink-soft); }
+.address-line { display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.4rem; }
+.address-line .ink-input { flex: 1; font-size: 1rem; font-weight: 300; }
+.card-address { font-size: 0.78rem; }
+.kind-toggle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.9rem; margin: 0 0 0.5rem; font-family: var(--script); font-size: 1rem; color: var(--ink-soft); }
+.kind-toggle .sort-option { display: inline-block; padding: 0 0.1rem; color: var(--ink); line-height: 1.5; }
+
+/* the polaroid: always there. Clicking the photo crops it; with no photo yet it's a light plus */
+.mini-polaroid-photo {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+  transition: filter 0.2s;
+}
+.mini-polaroid-photo:hover,
+.mini-polaroid-photo:focus-visible { filter: brightness(0.96); }
+.mini-polaroid.is-empty .mini-polaroid-add { display: grid; place-items: center; color: rgb(111 109 112 / 0.55); transition: color 0.2s, background-color 0.2s; }
+.mini-polaroid.is-empty .mini-polaroid-add .pen-icon { width: 2.1rem; height: 2.1rem; stroke-width: 1.3; }
+.mini-polaroid.is-empty .mini-polaroid-add:hover,
+.mini-polaroid.is-empty .mini-polaroid-add:focus-visible { color: var(--ink-soft); }
+
+.visit-rows .visit-thumb { margin-left: 0.5rem; }
+.visit-thumb { width: 1.7rem; height: 2.1rem; object-fit: cover; vertical-align: middle; box-shadow: 0 1px 2px rgb(40 30 20 / 0.3); rotate: -3deg; background: #fdfdfb; padding: 2px; }
+.add-visit { margin-top: 0.5rem; }
+.thoughts-text { margin: 0; white-space: pre-line; }
+
+.visit-pop { width: min(21rem, 94vw); }
+.visit-what { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; }
+.visit-what .ink-input { flex: 1; font-family: var(--hand); font-size: 1.2rem; }
+.visit-photo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.3rem;
+  height: 2.7rem;
+  padding: 0.12rem;
+  border: none;
+  background: #fdfdfb;
+  box-shadow: 0 1px 3px rgb(40 30 20 / 0.3);
+  rotate: 3deg;
+  color: var(--ink-soft);
+  transition: rotate 0.2s var(--ease-out);
+}
+.visit-photo:hover { rotate: -2deg; }
+.visit-photo img { width: 100%; height: 100%; object-fit: cover; }
+.visit-photo .pen-icon { width: 1.2rem; height: 1.2rem; }
+.visit-list { margin: 0.5rem 0 0; padding: 0; list-style: none; max-height: 8rem; overflow-y: auto; }
+.visit-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0; font-family: var(--hand); font-size: 1.1rem; line-height: 1.1; }
+.visit-date {
+  flex: none;
+  width: 3.4rem;
+  padding: 0;
+  border: none;
+  border-bottom: 1px dashed transparent;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: var(--ink-soft);
+  transition: color 0.2s, border-color 0.2s;
+}
+.visit-date:hover,
+.visit-date:focus-visible,
+.visit-date[aria-pressed='true'] { color: var(--ink); border-bottom-color: var(--pencil); }
+.visit-list li.is-moving { background: rgb(255 254 250 / 0.7); }
+.visit-dish-input { flex: 1; min-width: 0; font-family: var(--hand); font-size: 1.1rem; line-height: 1.1; }
+.visit-photo.is-small { width: 1.7rem; height: 2.1rem; }
+.visit-photo.is-small .pen-icon { width: 0.95rem; height: 0.95rem; }
+.visit-moving { margin: 0.4rem 0 0; font-family: var(--script); font-size: 1rem; color: var(--enamel-deep); }
+.visit-rows li.is-link { cursor: pointer; }
+.visit-rows li.is-link:hover .amt { color: var(--ink); }
+.visit-remove { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; border: none; border-radius: 50%; background: none; color: var(--ink-soft); }
+.visit-remove .pen-icon { width: 0.95rem; height: 0.95rem; }
+.visit-remove:hover,
+.visit-remove:focus-visible { color: var(--ink); background: rgb(255 254 250 / 0.8); }
+
+/* the photo editor: the picture behind a 4:5 frame (a stamp's shape) */
+.photo-editor-overlay { z-index: 35; display: grid; place-items: center; }
+.photo-editor { display: grid; justify-items: center; gap: 0.8rem; max-width: 100%; }
+.photo-editor-title { margin: 0; font-family: var(--script); font-size: 1.15rem; color: #fffefa; text-shadow: 0 1px 4px rgb(40 30 20 / 0.5); text-align: center; }
+.crop-frame {
+  position: relative;
+  width: min(20rem, 76vw, calc((100vh - 15rem) * 0.8));
+  overflow: hidden;
+  background: #ebe7e0;
+  border: 6px solid #fdfdfb;
+  box-shadow: 0 2px 4px rgb(40 30 20 / 0.25), 0 14px 30px rgb(40 30 20 / 0.3);
+  touch-action: none;
+  cursor: grab;
+}
+.crop-frame:active { cursor: grabbing; }
+.crop-frame img { position: absolute; max-width: none; user-select: none; pointer-events: none; }
+.crop-wait { margin: 0; padding: 4rem 1rem; text-align: center; font-family: var(--script); color: var(--ink-soft); }
+/* what the little square polaroid will show */
+.crop-guide {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  outline: 1px dashed rgb(255 254 250 / 0.85);
+  box-shadow: 0 0 0 100vmax rgb(40 30 20 / 0.22);
+  pointer-events: none;
+  clip-path: inset(-100vmax -100vmax -100vmax -100vmax);
+}
+.crop-zoom { display: flex; align-items: center; gap: 0.8rem; padding: 0.25rem 1rem; background: rgb(255 254 250 / 0.85); border-radius: 999px; }
+.crop-zoom .month-flip { width: 2rem; height: 2rem; }
+.crop-zoom .month-flip:disabled { opacity: 0.3; pointer-events: none; }
+.crop-zoom-level { min-width: 2.6rem; text-align: center; font-family: var(--hand); font-size: 1.3rem; }
+.photo-actions { z-index: 36; }
 
 /* ───────── motion ───────── */
 @keyframes overlay-in { from { background-color: rgb(70 66 62 / 0); backdrop-filter: blur(0); } }
