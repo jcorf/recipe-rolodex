@@ -405,6 +405,36 @@ button:disabled { cursor: default; }
   perspective: 1500px;
   perspective-origin: 50% 0%;
   border-radius: 6px;
+  touch-action: pan-y; /* a sideways swipe flips cards; up and down still scrolls the page */
+}
+
+/* two pen arrows above the card file for touch screens, where there's no keyboard or wheel to go back with */
+.rolodex-pager { display: none; }
+@media (max-width: 40rem), (pointer: coarse) {
+  .rolodex-pager {
+    display: flex;
+    justify-content: center;
+    gap: 1.6rem;
+    margin: 0 0 0.3rem; /* above the card file, never over a long card's text */
+    position: relative;
+    z-index: 3;
+  }
+  .rolodex-pager button {
+    display: grid;
+    place-items: center;
+    width: 2.8rem;
+    height: 2.8rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgb(255 254 250 / 0.7);
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgb(60 55 50 / 0.2);
+    transition: transform 0.2s var(--ease-out), background-color 0.2s;
+  }
+  .rolodex-pager button:active { transform: scale(0.92); background: rgb(255 254 250 / 0.95); }
+  .rolodex-pager button:disabled { opacity: 0.35; }
+  .rolodex-pager .pen-icon { width: 1.5rem; height: 1.5rem; }
 }
 
 .rolodex-stack {
@@ -487,6 +517,16 @@ button:disabled { cursor: default; }
 }
 .is-divider .card-face,
 .is-divider .card-tab { background-color: var(--stock, var(--divider)); }
+/* A card's grain is a layer turned to its own angle. For a card a few times taller than it is wide (a
+   long recipe on a phone) the old "60% bigger each way" layer no longer reached the corners once turned,
+   leaving half the card bare. A square three times the card's height, centred on it, covers any tilt. */
+.card-face::before {
+  inset: -100% auto;
+  left: 50%;
+  width: auto;
+  aspect-ratio: 1;
+  translate: -50% 0;
+}
 
 .card-tab {
   position: absolute;
@@ -1013,7 +1053,7 @@ button:disabled { cursor: default; }
 .ink-select[aria-expanded='true'] .pen-icon { rotate: 0deg; }
 .ink-select-pop { position: fixed; z-index: 45; rotate: -0.8deg; }
 .ink-select-pop .pop-card { padding: 0.7rem 1.3rem 0.8rem; }
-.ink-select-pop .pop-scroll { max-height: min(18rem, 55vh); }
+.ink-select-pop .pop-scroll { max-height: min(18rem, 55vh); max-height: min(18rem, 55svh); }
 .ink-option { width: 100%; border: none; background: none; text-align: left; color: var(--ink); white-space: nowrap; }
 
 .open-columns {
@@ -1459,6 +1499,8 @@ button:disabled { cursor: default; }
    a little past the text on every side; the negative margins keep the layout as it was. */
 .pop-scroll {
   max-height: calc(100vh - 12rem);
+  max-height: calc(100svh - 12rem); /* the visible height: on a phone 100vh reaches behind the browser bars, and the top of this card went off-screen */
+  overscroll-behavior: contain; /* reaching the end of its scroll doesn't start scrolling the page behind it */
   margin: -0.5rem -1rem;
   padding: 0.5rem 1rem;
   overflow-y: auto;
@@ -1773,6 +1815,7 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
   height: auto;
   max-width: min(46rem, 100%);
   max-height: calc(100vh - 10.5rem);
+  max-height: calc(100svh - 10.5rem);
   margin: 0 auto;
   box-shadow: 0 2px 4px rgb(60 55 50 / 0.2), 0 18px 40px rgb(60 55 50 / 0.28);
 }
@@ -1793,8 +1836,17 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 /* the note sits on the picture's top edge and never takes a click: the choices sit below it */
 .share-picture .letter-notice { position: absolute; left: 50%; top: 1.2rem; translate: -50% 0; margin: 0; white-space: nowrap; pointer-events: none; }
 
-.card-tab.is-restaurant { display: grid; place-items: center; width: 2.9rem; }
-.card-tab.is-restaurant .pen-icon { width: 1rem; height: 1rem; margin-top: 0.1rem; color: var(--ink); }
+/* a restaurant's tab is as tall as a divider's, so its fork shows in full above the card instead of
+   being cut off at the card's edge */
+.card-tab.is-plain.is-restaurant {
+  top: -2.1rem;
+  width: 3.6rem;
+  height: 3rem;
+  display: grid;
+  place-items: start center;
+  padding-top: 0.3rem;
+}
+.card-tab.is-restaurant .pen-icon { width: 1.5rem; height: 1.5rem; color: var(--ink); stroke-width: 1.6; }
 .card-thoughts { margin: 0; color: var(--ink); white-space: pre-line; } /* takes the recipe writing of its column */
 
 /* ───────── restaurants, visits and the photo editor ───────── */
@@ -1884,6 +1936,7 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 .crop-frame {
   position: relative;
   width: min(20rem, 76vw, calc((100vh - 15rem) * 0.8));
+  width: min(20rem, 76vw, calc((100svh - 15rem) * 0.8));
   overflow: hidden;
   background: #ebe7e0;
   border: 6px solid #fdfdfb;
