@@ -1643,7 +1643,17 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 .calendar-month small { font-family: var(--hand); font-size: 1.4rem; color: var(--ink-soft); }
 .calendar-count { margin: 0 0 0.3rem; text-align: center; font-family: var(--script); font-size: 1rem; color: var(--ink-soft); }
 .calendar-sheet .ink-rule { margin-bottom: 0.2rem; }
-.calendar-option { position: relative; display: block; margin-top: 0.8rem; text-align: center; font-size: 1.1rem; }
+.calendar-finish {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.4rem 1.1rem;
+  margin-top: 0.8rem;
+  font-family: var(--script);
+  font-size: 1.1rem;
+  color: var(--ink-soft);
+}
+.calendar-finish .sort-option { position: relative; display: inline-block; padding: 0 0.1rem; color: var(--ink); }
 .month-flip {
   display: grid;
   place-items: center;

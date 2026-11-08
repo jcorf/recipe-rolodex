@@ -2,7 +2,7 @@ import express from 'express';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { DEFAULT_SETTINGS, GLOW_OPTIONS, SORT_OPTIONS, loadRecipes, loadSettings, saveRecipes, saveSettings } from './store.js';
+import { DEFAULT_SETTINGS, GLOW_OPTIONS, SORT_OPTIONS, STAMP_FINISHES, loadRecipes, loadSettings, saveRecipes, saveSettings } from './store.js';
 import { importRecipe } from './importer.js';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -166,18 +166,23 @@ app.put('/api/settings', async (req, res) => {
     if (!text || text.length > 40) return res.status(400).json({ error: 'Give the desk a name of 1 to 40 characters.' });
     siteTitle = text;
   }
+  let stampFinish = current.stampFinish;
+  if (req.body?.stampFinish !== undefined) {
+    if (!STAMP_FINISHES.includes(req.body.stampFinish)) return res.status(400).json({ error: 'Pick plain, grainy or faded.' });
+    stampFinish = req.body.stampFinish;
+  }
   let glowPalette = current.glowPalette;
   if (req.body?.glowPalette !== undefined) {
     if (!GLOW_OPTIONS.includes(req.body.glowPalette)) return res.status(400).json({ error: 'Pick a glow from the list.' });
     glowPalette = req.body.glowPalette;
   }
   const flags = {};
-  for (const key of ['showNewCard', 'showFind', 'flipSound', 'grainyStamps']) {
+  for (const key of ['showNewCard', 'showFind', 'flipSound']) {
     if (req.body?.[key] === undefined) continue;
     if (typeof req.body[key] !== 'boolean') return res.status(400).json({ error: `${key} must be true or false.` });
     flags[key] = req.body[key];
   }
-  const next = { ...current, sortBy, titleFruit, recipeFont, siteTitle, glowPalette, dividerFruits, ...flags, dividerColors: colors };
+  const next = { ...current, sortBy, titleFruit, recipeFont, siteTitle, stampFinish, glowPalette, dividerFruits, ...flags, dividerColors: colors };
   await saveSettings(next);
   res.json(next);
 });

@@ -142,11 +142,12 @@ export default function App() {
 
   const close = useCallback(() => setOpen(null), []);
 
-  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {}, grainy: settings?.grainyStamps ?? false };
+  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {}, finish: settings?.stampFinish ?? 'plain' };
   const closeShare = useCallback(() => setShare(null), []);
   const closeCalendar = useCallback(() => setCalendarOpen(false), []);
   const shareRecipe = share?.kind === 'recipe' ? recipes.find((r) => r.id === share.id) : undefined;
-  const shareContext = { recipeFont: settings?.recipeFont ?? 'hand', look: stampLook };
+  const glow = GLOWS.find((g) => g.key === settings?.glowPalette) ?? GLOWS[0];
+  const shareContext = { recipeFont: settings?.recipeFont ?? 'hand', look: stampLook, glow: { warm: glow.warm, cool: glow.cool } };
 
   const openRecipe = open?.kind === 'saved' ? recipes.find((r) => r.id === open.id) : undefined;
 
@@ -269,7 +270,7 @@ export default function App() {
           look={stampLook}
           onClose={closeCalendar}
           onOpenRecipe={(r) => { setCalendarOpen(false); setOpen({ kind: 'saved', id: r.id }); }}
-          onGrainy={(grainyStamps) => changeSettings({ grainyStamps })}
+          onFinish={(stampFinish) => changeSettings({ stampFinish })}
           onShare={(year, month, seed) => setShare({ kind: 'month', year, month, seed })}
         />
       )}
