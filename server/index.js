@@ -160,6 +160,12 @@ app.put('/api/settings', async (req, res) => {
     }
     dividerFruits[group] = glyph;
   }
+  let siteTitle = current.siteTitle;
+  if (req.body?.siteTitle !== undefined) {
+    const text = String(req.body.siteTitle).replace(/\s+/g, ' ').trim();
+    if (!text || text.length > 40) return res.status(400).json({ error: 'Give the desk a name of 1 to 40 characters.' });
+    siteTitle = text;
+  }
   let glowPalette = current.glowPalette;
   if (req.body?.glowPalette !== undefined) {
     if (!GLOW_OPTIONS.includes(req.body.glowPalette)) return res.status(400).json({ error: 'Pick a glow from the list.' });
@@ -171,7 +177,7 @@ app.put('/api/settings', async (req, res) => {
     if (typeof req.body[key] !== 'boolean') return res.status(400).json({ error: `${key} must be true or false.` });
     flags[key] = req.body[key];
   }
-  const next = { ...current, sortBy, titleFruit, recipeFont, glowPalette, dividerFruits, ...flags, dividerColors: colors };
+  const next = { ...current, sortBy, titleFruit, recipeFont, siteTitle, glowPalette, dividerFruits, ...flags, dividerColors: colors };
   await saveSettings(next);
   res.json(next);
 });

@@ -27,6 +27,11 @@ export interface ShareContext {
   look: StampLook;
 }
 
+export interface MonthLook {
+  /** The seed the page used for the stamps' lean, so the picture matches it. */
+  seed: number;
+}
+
 const handFamily = (font: Settings['recipeFont']) => (font === 'caveat' ? 'Caveat' : font === 'print' ? 'Mukta Malar' : 'Zeyada');
 const handSize = (font: Settings['recipeFont']) => (font === 'caveat' ? 22 : font === 'print' ? 15 : 25);
 
@@ -121,7 +126,7 @@ function signature(ctx: CanvasRenderingContext2D, W: number, H: number) {
   ctx.font = `15px "${LABEL_FONT}"`;
   ctx.fillStyle = PENCIL;
   ctx.textAlign = 'center';
-  ctx.fillText('from my recipe roladex', W / 2, H - 16);
+  ctx.fillText('from my recipe rolodex', W / 2, H - 16);
   ctx.textAlign = 'left';
 }
 
@@ -378,7 +383,7 @@ function drawStamp(
 }
 
 /** A month of the calendar as a picture, a stamp on every day something was cooked. */
-export async function renderMonthImage(year: number, month: number, recipes: Recipe[], { recipeFont, look }: ShareContext): Promise<Blob> {
+export async function renderMonthImage(year: number, month: number, recipes: Recipe[], { recipeFont, look }: ShareContext, { seed }: MonthLook): Promise<Blob> {
   const hand = handFamily(recipeFont === 'print' ? 'hand' : recipeFont);
   await ensureFonts([LABEL_FONT, hand]);
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -454,7 +459,7 @@ export async function renderMonthImage(year: number, month: number, recipes: Rec
         const sw = (STAMP_W / STAMP_H) * h;
         const sx = x + (cellW - sw) / 2 + 4 + (list.length > 1 ? (n ? 11 : -9) : 0);
         const sy = top + 16 + (list.length > 1 && n ? 12 : 0);
-        drawStamp(c, r, photos.get(r.id) ?? null, look, sx, sy, h, (stampTilt(r.id, day) * Math.PI) / 180);
+        drawStamp(c, r, photos.get(r.id) ?? null, look, sx, sy, h, (stampTilt(r.id, day, seed) * Math.PI) / 180);
       });
       c.font = `21px "${hand}"`; // the day number sits on top of any stamp
       c.fillStyle = INK_SOFT;

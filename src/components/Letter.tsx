@@ -185,6 +185,9 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
     setEditing(false);
   };
 
+  // a new card with nothing written on it has nothing to lose, so clicking off it tucks it away
+  const blank = isNew && Object.values(form).every((v) => !v) && !review && !rating;
+
   const shown = editing ? { ...recipe, ...form, ingredients: lines(form.ingredients), steps: lines(form.steps) } : recipe;
   const source = sourceLabel(shown);
   const meta = [shown.totalTime, servesLabel(shown.servings), shown.cuisine].filter(Boolean);
@@ -198,9 +201,10 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
       role="dialog"
       aria-modal="true"
       aria-label={recipe.title || 'New recipe card'}
-      // a click anywhere off the card tucks it back (not while editing, so a stray click can't lose changes)
+      // a click anywhere off the card tucks it back (not while editing, so a stray click can't lose changes,
+      // unless it's a new card that's still blank)
       onPointerDown={(e) => {
-        if (!editing && !sceneRef.current?.contains(e.target as Node)) onClose();
+        if ((!editing || blank) && !sceneRef.current?.contains(e.target as Node)) onClose();
       }}
     >
       <div ref={sceneRef} className="open-scene">

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MONTH_NAMES, addMonths } from '../dates';
 import type { Recipe } from '../types';
-import { cardLook, InkFrame, InkRule } from './ink';
+import { cardLook, InkFrame, InkRule, PenCircle } from './ink';
 import { ActionTag } from './ActionTag';
 import { PenIcon } from './PenIcons';
 import { MonthGrid, type StampLook } from './MonthGrid';
@@ -17,24 +17,31 @@ export function cookedByDay(recipes: Recipe[]) {
 }
 
 export function CalendarView({
-  recipes, look, onOpenRecipe, onShare, onClose, paused = false,
+  recipes, look, onOpenRecipe, onShare, onClose, onGrainy, paused = false,
 }: {
+  /** Turn the worn, speckled print look on or off (saved as a setting). */
+  onGrainy: (on: boolean) => void;
   /** A share sheet is open on top: leave the keys to it. */
   paused?: boolean;
   recipes: Recipe[];
   look: StampLook;
   onOpenRecipe: (recipe: Recipe) => void;
   /** Share this month as a picture. */
-  onShare: (year: number, month: number) => void;
+  onShare: (year: number, month: number, seed: number) => void;
   onClose: () => void;
 }) {
   const now = new Date();
   const [at, setAt] = useState({ year: now.getFullYear(), month: now.getMonth() });
+  // every opening and every turned page lays the stamps down a little differently
+  const [seed, setSeed] = useState(() => Math.random());
   const overlayRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
   const days = useMemo(() => cookedByDay(recipes), [recipes]);
   const styleLook = cardLook(`calendar-${at.year}-${at.month}`);
-  const flip = (by: number) => setAt((a) => addMonths(a.year, a.month, by));
+  const flip = (by: number) => {
+    setAt((a) => addMonths(a.year, a.month, by));
+    setSeed(Math.random());
+  };
 
   useEffect(() => {
     overlayRef.current?.focus({ preventScroll: true });
@@ -88,14 +95,22 @@ export function CalendarView({
                 month={at.month}
                 days={days}
                 look={look}
+                seed={seed}
                 onStamp={(r) => onOpenRecipe(r)}
               />
+              <label className={`sort-option calendar-option ${look.grainy ? 'is-chosen' : ''}`}>
+                <input type="checkbox" className="visually-hidden" checked={!!look.grainy} onChange={(e) => onGrainy(e.target.checked)} />
+                <span className="sort-label">
+                  grainy stamps
+                  {look.grainy && <PenCircle variant={5} />}
+                </span>
+              </label>
             </div>
           </div>
         </div>
       </div>
       <nav className="card-actions" aria-label="Calendar actions">
-        <ActionTag icon="share" label="share this month" onClick={() => onShare(at.year, at.month)} />
+        <ActionTag icon="share" label="share this month" onClick={() => onShare(at.year, at.month, seed)} />
         <ActionTag icon="cancel" label="close" tone="quiet" onClick={onClose} />
       </nav>
     </>

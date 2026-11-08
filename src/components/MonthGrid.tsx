@@ -20,13 +20,15 @@ export const stampFruit = (r: Recipe, look: StampLook) => dividerFruit(r.categor
  * With `onDay` every day is a button (used to mark a recipe cooked); otherwise stamps open their recipe.
  */
 export function MonthGrid({
-  year, month, days, look, compact = false, onDay, onStamp,
+  year, month, days, look, seed = 0, compact = false, onDay, onStamp,
 }: {
   year: number;
   month: number;
   /** Recipes cooked, by day. */
   days: Map<string, Recipe[]>;
   look: StampLook;
+  /** Re-rolled by the caller to shuffle every stamp's lean. */
+  seed?: number;
   compact?: boolean;
   onDay?: (day: string) => void;
   onStamp?: (recipe: Recipe) => void;
@@ -51,7 +53,7 @@ export function MonthGrid({
                   {shown.map((r, n) => {
                     const stamp = <Stamp image={r.image} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} grainy={look.grainy} />;
                     const cls = `day-stamp is-${shown.length}-${n}`;
-                    const lean = { rotate: `${stampTilt(r.id, day)}deg` };
+                    const lean = { rotate: `${stampTilt(r.id, day, seed)}deg` };
                     return onStamp && !onDay ? (
                       <button key={r.id} type="button" className={cls} style={lean} aria-label={`Open ${r.title}`} onClick={() => onStamp(r)}>{stamp}</button>
                     ) : (
