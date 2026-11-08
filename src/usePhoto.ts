@@ -24,14 +24,16 @@ export async function addPhoto(file: File): Promise<string> {
  */
 export function usePhotoSrc(recipe: { photo?: string; image?: string }, size: PhotoSize): string {
   const { photo, image = '' } = recipe;
-  const [src, setSrc] = useState('');
+  // undefined while a kept photo is being read; null when it's missing (fall back to the link)
+  const [kept, setKept] = useState<string | null | undefined>(undefined);
   useEffect(() => {
     if (!photo) return;
     let alive = true;
-    photoUrl(photo, size).then((url) => alive && setSrc(url ?? ''));
-    return () => { alive = false; setSrc(''); };
+    photoUrl(photo, size).then((url) => alive && setKept(url));
+    return () => { alive = false; setKept(undefined); };
   }, [photo, size]);
-  return photo ? src || '' : image;
+  if (!photo) return image;
+  return kept === undefined ? '' : kept ?? image;
 }
 
 /** The same for drawing onto a canvas (shared pictures): a kept photo, or null to use the web link. */

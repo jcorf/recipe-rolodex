@@ -1,5 +1,53 @@
 import { CATEGORIES, type Recipe } from './types';
 import { abbreviateUnits, ratingLabel, servesLabel, stepText } from './recipeText';
+import { api } from './api';
+
+/** A kept photo travels inside a .json backup as two data: links, so a backup brings the photos back too. */
+interface PhotoData { main: string; thumb: string }
+type BackupCard = Recipe & { photoData?: PhotoData };
+
+const toDataUrl = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+
+/** Kept photos stop at 1200px, so a backed-up one is well under this. Anything bigger isn't ours. */
+const MAX_PHOTO_DATA = 8 * 1024 * 1024;
+
+function fromDataUrl(url: unknown): Blob | null {
+  if (typeof url !== 'string' || url.length > MAX_PHOTO_DATA) return null;
+  const m = /^data:(image\/(?:webp|jpeg|png));base64,([A-Za-z0-9+/=]+)$/.exec(url);
+  if (!m) return null;
+  try {
+    const bin = atob(m[2]);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: m[1] });
+  } catch {
+    return null;
+  }
+}
+
+async function withPhotoData(r: Recipe): Promise<BackupCard> {
+  if (!r.photo) return r;
+  const [main, thumb] = await Promise.all([api.photo(r.photo, 'main'), api.photo(r.photo, 'thumb')]);
+  if (!main || !thumb) return r;
+  return { ...r, photoData: { main: await toDataUrl(main), thumb: await toDataUrl(thumb) } };
+}
+
+/** A backed-up card's photo, kept again on this device; the card then points to it. */
+async function restorePhoto(card: unknown): Promise<unknown> {
+  if (!card || typeof card !== 'object') return card;
+  const { photoData, ...rest } = card as BackupCard;
+  if (!photoData) return rest;
+  const main = fromDataUrl(photoData.main);
+  const thumb = fromDataUrl(photoData.thumb);
+  if (!main || !thumb) return { ...rest, photo: '' };
+  return { ...rest, photo: await api.savePhoto({ main, thumb }) };
+}
 
 function download(filename: string, data: unknown, type = 'application/json') {
   const blob = data instanceof Blob ? data : new Blob([typeof data === 'string' ? data : JSON.stringify(data, null, 2)], { type });
@@ -61,7 +109,7 @@ export async function importFiles(files: File[], send: (payload: unknown) => Pro
     }
   }
   if (cards.length) {
-    const sent = await send(cards);
+    const sent = await send(await Promise.all(cards.map(restorePhoto)));
     total.added = sent.added;
     total.skipped += sent.skipped;
     total.invalid += sent.invalid;
@@ -185,7 +233,10 @@ const MIME: Record<ExportFormat, string> = {
 
 async function make(recipes: Recipe[], format: ExportFormat, single: boolean): Promise<string | Blob | unknown> {
   switch (format) {
-    case 'json': return single ? recipes[0] : { exportedAt: new Date().toISOString(), count: recipes.length, recipes };
+    case 'json': {
+      const cards = await Promise.all(recipes.map(withPhotoData));
+      return single ? cards[0] : { exportedAt: new Date().toISOString(), count: cards.length, recipes: cards };
+    }
     case 'md': return recipes.map(recipeToMarkdown).join('\n---\n\n');
     case 'txt': return recipes.map(recipeToText).join('\n' + '-'.repeat(40) + '\n\n');
     case 'docx': return toDocx(recipes);
