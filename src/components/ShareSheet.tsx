@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActionTag } from './ActionTag';
 import { PenCircle } from './ink';
 
@@ -12,8 +12,17 @@ const loadWhite = () => {
  * the phone/computer share sheet when there is one, copy it, or save the .png.
  */
 export function ShareSheet({
-  title, filename, render, onClose,
-}: { title: string; filename: string; render: (white: boolean) => Promise<Blob>; onClose: () => void }) {
+  title, filename, render, renderKey = '', controls, onClose,
+}: {
+  title: string;
+  filename: string;
+  render: (white: boolean) => Promise<Blob>;
+  /** Change this to draw the picture again (a different page, a different day). */
+  renderKey?: string;
+  /** Extra choices written above the background choice. */
+  controls?: ReactNode;
+  onClose: () => void;
+}) {
   const [blob, setBlob] = useState<Blob | null>(null);
   const [url, setUrl] = useState('');
   const [note, setNote] = useState('drawing it…');
@@ -23,7 +32,7 @@ export function ShareSheet({
   const canShare = !!file && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
   const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write;
 
-  // (re)draw whenever the backdrop changes; the last picture stays up until the new one is ready
+  // (re)draw whenever the backdrop or the picture asked for changes; the last picture stays up until the new one is ready
   useEffect(() => {
     let alive = true;
     render(white)
@@ -36,7 +45,7 @@ export function ShareSheet({
       .catch((err: Error) => alive && setNote(err.message));
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [white]);
+  }, [white, renderKey]);
 
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
 
@@ -97,7 +106,8 @@ export function ShareSheet({
         <figure className="share-picture">
           {url ? <img src={url} alt={`${title}, as a picture`} /> : <div className="share-wait" aria-hidden="true" />}
           {note && <p className="letter-notice" role="status">{note}</p>}
-          <div role="radiogroup" aria-label="Background of the picture" className="share-backdrop">
+          {controls}
+          <div role="radiogroup" aria-label="Background of the picture" className="share-row share-backdrop">
             <span>background</span>
             {([[false, 'glow'], [true, 'white']] as const).map(([value, label], i) => (
               <label key={label} className={`sort-option ${white === value ? 'is-chosen' : ''}`}>

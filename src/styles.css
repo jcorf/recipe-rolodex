@@ -1739,16 +1739,23 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 .share-overlay { z-index: 30; display: grid; place-items: center; padding: 2rem clamp(1rem, 4vw, 2.5rem); }
 .share-actions { z-index: 31; }
 .share-picture { position: relative; margin: 0; }
+.share-step { width: 1.9rem; height: 1.9rem; align-self: center; }
+.share-step .pen-icon { width: 1.1rem; height: 1.1rem; }
+.share-step.is-far { display: inline-flex; align-items: center; justify-content: center; width: 2.4rem; }
+.share-step.is-far .pen-icon + .pen-icon { margin-left: -0.7rem; }
+.share-step:disabled { opacity: 0.25; pointer-events: none; }
+.share-date { min-width: 7.5rem; text-align: center; font-family: var(--hand); font-size: 1.3rem; color: var(--ink); }
 .share-picture img {
   display: block;
   width: auto;
   height: auto;
   max-width: min(46rem, 100%);
-  max-height: calc(100vh - 5rem);
+  max-height: calc(100vh - 10.5rem);
   margin: 0 auto;
   box-shadow: 0 2px 4px rgb(60 55 50 / 0.2), 0 18px 40px rgb(60 55 50 / 0.28);
 }
 .share-wait { width: min(30rem, 80vw); height: 18rem; background: var(--card); }
+.share-row,
 .share-backdrop {
   display: flex;
   align-items: baseline;
@@ -1759,8 +1766,10 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
   font-size: 1.1rem;
   color: var(--ink-soft);
 }
+.share-row .sort-option,
 .share-backdrop .sort-option { display: inline-block; padding: 0 0.1rem; color: var(--ink); }
-.share-picture .letter-notice { position: absolute; left: 50%; bottom: 1.6rem; translate: -50% 0; margin: 0; white-space: nowrap; }
+/* the note sits on the picture's top edge and never takes a click: the choices sit below it */
+.share-picture .letter-notice { position: absolute; left: 50%; top: 1.2rem; translate: -50% 0; margin: 0; white-space: nowrap; pointer-events: none; }
 
 /* ───────── motion ───────── */
 @keyframes overlay-in { from { background-color: rgb(70 66 62 / 0); backdrop-filter: blur(0); } }

@@ -14,9 +14,9 @@ import { Letter } from './components/Letter';
 import { EditableTitle } from './components/EditableTitle';
 import { CalendarView } from './components/CalendarView';
 import { ShareSheet } from './components/ShareSheet';
+import { CalendarShare } from './components/CalendarShare';
 import { ActionTag } from './components/ActionTag';
-import { fileSlug, renderMonthImage, renderRecipeImage } from './shareImage';
-import { MONTH_NAMES } from './dates';
+import { fileSlug, renderRecipeImage } from './shareImage';
 
 /** The cursor glow's two colours, as CSS variables on the glow layer. */
 function glowStyle(key?: string): React.CSSProperties {
@@ -297,10 +297,12 @@ export default function App() {
         />
       )}
       {share?.kind === 'month' && (
-        <ShareSheet
-          title={`${MONTH_NAMES[share.month]} ${share.year}, what I cooked`}
-          filename={`cooked-${share.year}-${String(share.month + 1).padStart(2, '0')}.png`}
-          render={(white) => renderMonthImage(share.year, share.month, recipes, { ...shareContext, white }, { seed: share.seed })}
+        <CalendarShare
+          year={share.year}
+          month={share.month}
+          seed={share.seed}
+          recipes={recipes}
+          context={shareContext}
           onClose={closeShare}
         />
       )}
