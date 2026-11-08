@@ -1,6 +1,7 @@
 import { defineConfig, type Connect, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import type { ServerResponse } from 'node:http';
 // @ts-ignore plain JS shared with the Vercel functions in api/
 import { handleImage, handleImport } from './api/_lib/handlers.js';
@@ -61,7 +62,13 @@ function localApi(): Plugin {
   };
 }
 
+/** The security headers Vercel sends (vercel.json), so `npm run preview` behaves like the live site. */
+const vercelHeaders: Record<string, string> = Object.fromEntries(
+  JSON.parse(readFileSync('vercel.json', 'utf8')).headers[0].headers.map((h: { key: string; value: string }) => [h.key, h.value]),
+);
+
 export default defineConfig({
   plugins: [react(), localApi()],
   server: { port: 5173 },
+  preview: { headers: vercelHeaders },
 });
