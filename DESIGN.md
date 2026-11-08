@@ -258,12 +258,13 @@ Drawn shapes come from a pen: the border wobbles along each side and its corners
 - **Meals.** "I ate here" (the stamp tag) opens a month: write what you had, optionally add a photo of the dish, then tap a day. Tap again for a second meal. Every meal stays listed below with a pen cross to remove it.
 - **Sorting.** Shared by both: stars, cuisine, a–z. Recipes only: meal, time. Restaurants only: price ($, $$, $$$, $$$+), location, kind of place (restaurants, bars, bakeries, fast-casual). With both kinds in the box, whatever a sort doesn't apply to waits in a last divider ("eating out" or "cooked at home").
 - **On the calendar.** Each meal eaten out is a stamp on its day, counted separately ("n dishes cooked · n dishes ate out"), using the dish's photo, else the card's, else a pen-drawn fork on the pastel for its kind of place. It never looks like a cooked dish (a perforated rectangle): under the stamp finishes, "meals out: circle · bordered" picks a **scalloped circle** (a seal) or a **bordered colour** (a hand-cut rectangle whose paper is the pastel, with the photo set inside a pen line). The calendar's spoon tag is labelled "what I ate".
+- **Colour of meals out.** Under "meals out", a row of swatches (the divider pastels, plus "auto") sets the colour of those stamps: the fork's background on a circle, the border on a bordered one. "Auto" follows the kind of place (restaurants lavender, bars blue, bakeries pink, fast-casual sage). Saved as `ateOutColor`.
 - **City and address.** *City* is the one word the location sort groups by (and the meta line shows); an optional *address* is its own small line beneath, for the spot itself.
 - **Fixing a meal.** Tapping a meal on the card opens the visits: the text of each meal is a line you can rewrite, its photo can be added or changed, and tapping its date lets you tap a new day for it.
 
 ### The Photo Editor
-- **The polaroid is always on the open card.** Tapping its photo opens the editor, edit mode or not; with no photo it is a light pen-drawn plus that opens the photo picker (the plus is only on the page: a shared picture leaves an empty polaroid out).
-- **The editor** shows the photo behind a 4:5 frame, the shape of a stamp: drag to move, scroll or − / + to zoom (1×–4×), reset. A dashed square marks what the square polaroid will show of it. "keep it" keeps the crop as the card's photo (the old one is cleared); "never mind", or Escape, closes just the editor.
+- **The polaroid is always on the open card.** Tapping its photo opens the editor, edit mode or not; with no photo it is a light pen-drawn plus on the polaroid's own paper (a faint pencil outline, no grey box) that opens the photo picker (the plus is only on the page: a shared picture leaves an empty polaroid out).
+- **The editor** has two pen arrows to turn the picture a quarter each way (the crop starts over after a turn), and shows the photo behind a 4:5 frame, the shape of a stamp: drag to move, scroll or − / + to zoom (1×–4×), reset. A dashed square marks what the square polaroid will show of it. "keep it" keeps the crop as the card's photo (the old one is cleared); "never mind", or Escape, closes just the editor.
 
 ### Shared Pictures
 - **What:** a recipe card or a calendar month drawn onto a canvas in the same cotton, grain, torn edge, pen border and handwriting as the page, on the desk with a soft shadow and a small "from my recipe rolodex" signature (the desk behind it is lit by the owner's chosen cursor-glow colours, warm up top-left and cool bottom-right, like the page), at 2× size. Photos from other sites come through the app's own `/api/image` so the picture can be saved.
@@ -282,7 +283,7 @@ Drawn shapes come from a pen: the border wobbles along each side and its corners
 - **Hover / Focus:** fills to full opacity, straightens to −6°, and the lid tips open 45° from its right end (0.55s ease-out).
 - **Open (clicked):** the lid stays open and a pop-up card above it offers **sort the box by**: meal (default), stars (5 → 1, then not rated; a half star rounds down, so 4½ files under 4), time (under 30 min, under an hour, under 2 hours, 2 hours +, time unknown), cuisine (A–Z), or a – z (a divider only for letters that have cards, showing just the letter, drawn large). Star sorting shows only the star levels that have cards. Saved in settings (`sortBy`). Non-meal dividers cycle through the meal pastels and fruits; star dividers draw their stars instead of a fruit.
 - **More settings on the card:** in the box (recipes, restaurants); recipe writing (handwritten = Zeyada, printed = Mukta Malar, for ingredients, directions and notes everywhere); on the desk (show or put away the blank-card stack and the find slip); export (all recipes as one dated .json file). Each open card also has an export tag for that one recipe.
-- **Narrow screens / high zoom:** stops floating and sits at the end of the page, so it never covers a card.
+- **Every screen size:** it floats at the bottom-right corner (opposite the surprise tag), phones and high zoom included, and the page has room beneath the cards so it never covers one.
 
 ## Do's and Don'ts
 
@@ -292,7 +293,7 @@ Drawn shapes come from a pen: the border wobbles along each side and its corners
 - **Do** let the front card grow to show the whole recipe instead of truncating it.
 - **Do** make new desk controls objects (a card, a slip, a tag, a jar), never form boxes or text buttons.
 - **Do** keep La Belle Aurore lines unclipped with 0.25em below for descenders.
-- **Do** write every recipe title in lowercase.
+- **Do** write all text in lowercase (titles, notes, descriptions, labels, buttons, the shared pictures): it's a display rule, so what's stored keeps its case, and exports (.md, .txt, .docx, .pdf, .json) keep it too.
 - **Do** use dark grey ink (ink #3d3c40) for all text and drawn lines.
 - **Do** give every new card-like surface a deckled edge, cotton grain and a pen border.
 

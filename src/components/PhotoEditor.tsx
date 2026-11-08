@@ -4,7 +4,7 @@ import { ActionTag } from './ActionTag';
 import { PenIcon } from './PenIcons';
 
 /**
- * Crop, zoom and move a photo. The picture sits behind a 4:5 frame (the shape of a stamp): drag it,
+ * Turn, crop, zoom and move a photo. The picture sits behind a 4:5 frame (the shape of a stamp): drag it,
  * scroll or press − / + to zoom. A dashed square shows what the little polaroid will show of it.
  * Nothing is kept until "keep it".
  */
@@ -17,6 +17,9 @@ export function PhotoEditor({
 }: { src: string; title: string; onDone: (files: PhotoFiles) => Promise<void> | void; onCancel: () => void }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [img, setImg] = useState<HTMLImageElement | null>(null);
+  /** What's on show: the photo as given, or a turned copy of it. */
+  const [shownSrc, setShownSrc] = useState(src);
+  const turned = useRef<string[]>([]);
   const [failed, setFailed] = useState(false);
   const [frame, setFrame] = useState({ w: 0, h: 0 });
   /** The part of the picture at the middle of the frame (0–1 each way), and how far in we are. */
@@ -31,6 +34,28 @@ export function PhotoEditor({
     el.onerror = () => setFailed(true);
     el.src = src;
   }, [src]);
+
+  // turned copies are made here, so they're let go of here
+  useEffect(() => () => turned.current.forEach((u) => URL.revokeObjectURL(u)), []);
+
+  /** Turns the picture a quarter each way; the crop starts over, since what's in the middle has moved. */
+  const turn = async (quarter: 1 | -1) => {
+    if (!img || busy) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalHeight;
+    canvas.height = img.naturalWidth;
+    const ctx = canvas.getContext('2d')!;
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((quarter * Math.PI) / 2);
+    ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    turned.current.push(url);
+    const next = new Image();
+    next.onload = () => { setImg(next); setShownSrc(url); setView({ cx: 0.5, cy: 0.5, zoom: 1 }); };
+    next.src = url;
+  };
 
   useEffect(() => {
     const el = frameRef.current;
@@ -110,9 +135,13 @@ export function PhotoEditor({
             onPointerCancel={() => { drag.current = null; }}
             onWheel={(e) => zoomBy(e.deltaY < 0 ? 1.08 : 1 / 1.08)}
           >
-            {img && <img src={src} alt="" draggable={false} style={{ width: shownW, height: shownH, left, top }} />}
+            {img && <img src={shownSrc} alt="" draggable={false} style={{ width: shownW, height: shownH, left, top }} />}
             {!img && <p className="crop-wait">{failed ? 'couldn’t open that photo here' : 'opening the photo…'}</p>}
             {img && <span className="crop-guide" aria-hidden="true" />}
+          </div>
+          <div className="crop-turn" role="group" aria-label="Rotate">
+            <button type="button" className="month-flip turn-left" aria-label="Turn left" disabled={!img || busy} onClick={() => turn(-1)}><PenIcon name="turn" /></button>
+            <button type="button" className="month-flip" aria-label="Turn right" disabled={!img || busy} onClick={() => turn(1)}><PenIcon name="turn" /></button>
           </div>
           <div className="crop-zoom" role="group" aria-label="Zoom">
             <button type="button" className="month-flip" aria-label="Zoom out" disabled={!img || view.zoom <= MIN_ZOOM} onClick={() => zoomBy(1 / 1.25)}>

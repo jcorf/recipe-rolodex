@@ -8,6 +8,9 @@ import seed from './seed.json';
 
 const SETTINGS = 'settings';
 const STARTED = 'started';
+/** The sample cards added after launch (ids starting "seed-"), and which of them this browser has already been given. */
+const SEEDED = 'seeded';
+const TOP_UP = (seed as Recipe[]).filter((r) => r.id.startsWith('seed-'));
 /** A photo no card points to is cleared once it's this old (a day covers a card still being written). */
 const UNUSED_PHOTO_MS = 24 * 60 * 60 * 1000;
 
@@ -38,13 +41,27 @@ async function fromOldServer(): Promise<{ recipes: Recipe[]; settings?: Settings
   }
 }
 
+/**
+ * Sample cards added to the app later are handed to a box that already exists too, once each: a card
+ * you tear up (or any that's already there) is never put back.
+ */
+async function topUp() {
+  await tx(['recipes', 'kv'], 'readwrite', async (t) => {
+    const given = (await get<string[]>(t, 'kv', SEEDED)) ?? [];
+    const todo = TOP_UP.filter((r) => !given.includes(r.id));
+    if (!todo.length) return;
+    for (const card of todo) if (!(await get<Recipe>(t, 'recipes', card.id))) await put(t, 'recipes', card);
+    await put(t, 'kv', [...given, ...todo.map((r) => r.id)], SEEDED);
+  });
+}
+
 let starting: Promise<void> | null = null;
 
 /** The first visit fills the box with the sample cards (or your old cards, in development). */
 function start() {
   starting ??= (async () => {
     const started = await tx('kv', 'readonly', (t) => get<boolean>(t, 'kv', STARTED));
-    if (started) return;
+    if (started) return topUp();
     const old = await fromOldServer();
     const recipes = (old?.recipes ?? (seed as Recipe[])) as Recipe[];
     await tx(['recipes', 'kv'], 'readwrite', async (t) => {
@@ -53,6 +70,7 @@ function start() {
       if (old?.settings) await put(t, 'kv', withDefaults(old.settings), SETTINGS);
       await put(t, 'kv', true, STARTED);
     });
+    await topUp(); // a first visit already has them all; this just notes that
     void askToPersist();
   })().catch((err) => { starting = null; throw err; });
   return starting;

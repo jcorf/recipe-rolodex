@@ -12,12 +12,14 @@ import { MonthGrid, type StampLook } from './MonthGrid';
  * every day it was cooked. Flip months with the pen arrows or ← →; click a stamp to open its recipe.
  */
 export function CalendarView({
-  recipes, show, look, onOpenRecipe, onShare, onClose, onFinish, onAteOutStyle, paused = false,
+  recipes, show, look, onOpenRecipe, onShare, onClose, onFinish, onAteOutStyle, onAteOutColor, paused = false,
 }: {
   /** Which kinds of card stamp the calendar (recipes cooked, meals eaten out). */
   show: Shown;
   /** How a meal eaten out is stamped: a scalloped circle, or a bordered colour. */
   onAteOutStyle: (style: AteOutStyle) => void;
+  /** The colour of meals-out stamps ('' follows the kind of place). */
+  onAteOutColor: (color: string) => void;
   /** Choose how the stamps are finished: plain, grainy or faded (saved as a setting). */
   onFinish: (finish: StampFinish) => void;
   /** A share sheet is open on top: leave the keys to it. */
@@ -151,6 +153,24 @@ export function CalendarView({
                           {o.label}
                           {chosen && <PenCircle variant={i + 6} />}
                         </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              {anyAteOut && (
+                <div role="radiogroup" aria-label="Colour of meals eaten out" className="calendar-finish ate-out-colors">
+                  <span>colour</span>
+                  {['', ...new Set(Object.values(look.colors))].map((hex, i) => {
+                    const chosen = (look.ateOutColor ?? '') === hex;
+                    return (
+                      <label key={hex || 'auto'} className="glow-swatch" title={hex ? hex : 'by kind of place'}>
+                        <input type="radio" name="ate-out-color" className="visually-hidden" checked={chosen} onChange={() => onAteOutColor(hex)} />
+                        <span className={`glow-dot ${hex ? '' : 'is-auto'}`} style={hex ? { background: hex } : undefined}>
+                          {!hex && <small aria-hidden="true">auto</small>}
+                          {chosen && <PenCircle variant={i} />}
+                        </span>
+                        <span className="visually-hidden">{hex ? `colour ${hex}` : 'by kind of place'}</span>
                       </label>
                     );
                   })}

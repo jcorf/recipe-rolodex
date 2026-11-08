@@ -90,6 +90,8 @@ export interface Settings {
   showRestaurants: boolean;
   /** How a meal eaten out is stamped on the calendar, to tell it from cooking: a scalloped circle, or a bordered colour. */
   ateOutStyle: AteOutStyle;
+  /** The colour of meals-out stamps (a #hex), or '' to follow the kind of place (restaurants lavender, bars blue…). */
+  ateOutColor: string;
   /** How stamps on the calendar are finished: as printed, worn and speckled, or faded under a thin veil. */
   stampFinish: StampFinish;
   /** The name written at the top of the desk (click it to rewrite it). */

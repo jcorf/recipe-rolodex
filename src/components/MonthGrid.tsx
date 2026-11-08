@@ -11,13 +11,20 @@ export interface StampLook {
   finish?: StampFinish;
   /** How a meal eaten out is stamped (a setting). */
   ateOutStyle?: AteOutStyle;
+  /** The colour chosen for meals-out stamps ('' follows the kind of place). */
+  ateOutColor?: string;
 }
 
 /** A restaurant borrows the meal pastels by its kind of place (bars: drinks blue, bakeries: dessert pink…). */
 const VENUE_PASTEL: Record<string, string> = { restaurant: 'dinner', bar: 'drinks', bakery: 'dessert', 'fast-casual': 'lunch' };
 
-export const stampFill = (r: Recipe, look: StampLook) =>
-  look.colors[r.kind === 'restaurant' ? VENUE_PASTEL[r.venue ?? ''] ?? 'unsorted' : r.category || 'unsorted'] ?? '#e4e2dd';
+export function stampFill(r: Recipe, look: StampLook) {
+  if (r.kind === 'restaurant') {
+    if (look.ateOutColor) return look.ateOutColor; // the colour you chose for meals out
+    return look.colors[VENUE_PASTEL[r.venue ?? ''] ?? 'unsorted'] ?? '#e4e2dd';
+  }
+  return look.colors[r.category || 'unsorted'] ?? '#e4e2dd';
+}
 export const stampFruit = (r: Recipe, look: StampLook) => dividerFruit(r.category || 'unsorted', 0, look.fruits);
 
 /**

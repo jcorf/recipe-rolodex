@@ -90,6 +90,11 @@ body::before {
   z-index: 1;
 }
 
+/* Everything on the desk is written lowercase, however it was typed (what's stored keeps its case).
+   Form controls don't inherit this by themselves. */
+html { text-transform: lowercase; }
+button, input, select, textarea { text-transform: inherit; }
+
 ::selection { background: #f2c3c0; color: var(--ink); }
 
 /* No coloured focus ring. Keyboard focus shows the same quiet cue as hover instead:
@@ -338,7 +343,6 @@ button:disabled { cursor: default; }
 .slip-field input::placeholder {
   font-family: var(--script);
   font-size: 1.05rem;
-  text-transform: none;
   color: var(--ink-soft);
 }
 .slip-field input:focus-visible { outline: none; }
@@ -487,6 +491,9 @@ button:disabled { cursor: default; }
 .card-tab {
   position: absolute;
   left: var(--tab-x, 6%);
+  /* shifted back by the same share of its own width, so a long label can't run past the card's edge */
+  translate: calc(var(--tab-x, 6%) * -1) 0;
+  max-width: 100%;
   /* torn like the card, with its own pen outline (TabEdge) */
   -webkit-mask: url('/deckle-tab.svg') 0 0 / 100% 100% no-repeat;
   mask: url('/deckle-tab.svg') 0 0 / 100% 100% no-repeat;
@@ -638,7 +645,6 @@ button:disabled { cursor: default; }
   font-size: 0.95rem;
   line-height: 1.7;
   letter-spacing: 0;
-  text-transform: none;
 }
 .card-ingredients,
 .card-steps { margin: 0; padding: 0; list-style: none; }
@@ -685,6 +691,10 @@ button:disabled { cursor: default; }
   font-size: min(calc(var(--card-h) * 0.17), calc(var(--card-w) * 0.105));  /* fits tall phone cards too */
   line-height: 1.5;
   color: var(--ink);
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  overflow-wrap: anywhere;
 }
 .divider-fruit { font-size: 1.15em; rotate: -6deg; translate: 0 0.1em; }
 .divider-name.is-letter { font-size: min(calc(var(--card-h) * 0.42), calc(var(--card-w) * 0.3)); line-height: 1.2; } /* a lone letter, drawn big */
@@ -859,14 +869,16 @@ button:disabled { cursor: default; }
   object-fit: cover;
   background: #ebe7e0;
 }
+/* no photo yet: the spot is the polaroid's own paper, with a faint pencil outline */
 .mini-polaroid-add {
-  border: none;
+  background: transparent;
+  border: 1px dashed rgb(163 157 150 / 0.7);
   font-size: 0.7rem;
   line-height: 1.2;
   color: var(--ink-soft);
   cursor: pointer;
 }
-.mini-polaroid-add:hover { background: #e3ded5; }
+.mini-polaroid-add:hover { background: rgb(40 30 20 / 0.04); }
 .mini-polaroid-add:disabled { cursor: progress; }
 /* change · remove, written small on the polaroid's bottom strip while editing */
 .mini-polaroid-actions {
@@ -1307,16 +1319,6 @@ button:disabled { cursor: default; }
 }
 
 
-/* zoomed in or on a phone: sit at the end of the page instead of floating over content */
-@media (max-width: 40rem) {
-  .jam-jar {
-    position: relative;
-    right: auto;
-    bottom: auto;
-    align-self: flex-end;
-    margin: 0 clamp(1rem, 4vw, 3rem) 1.5rem 0;
-  }
-}
 
 /* "casual script" recipe writing (jar setting): the same places, in Caveat (it runs larger than Zeyada) */
 [data-recipe-font='caveat'] .card-columns { font-family: 'Caveat', cursive; font-size: 1.1rem; line-height: 1.15; }
@@ -1690,6 +1692,9 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 .finish-dice .pen-icon { width: 1.35rem; height: 1.35rem; }
 .finish-dice:hover,
 .finish-dice:focus-visible { background: rgb(255 254 250 / 0.75); transform: rotate(180deg) scale(1.1); }
+.ate-out-colors { gap: 0.4rem 0.5rem; }
+.glow-dot.is-auto { display: grid; place-items: center; background: transparent; border: 1px dashed var(--pencil); }
+.glow-dot.is-auto small { font-family: var(--script); font-size: 0.55rem; line-height: 1; color: var(--ink-soft); }
 .calendar-finish .sort-option { position: relative; display: inline-block; padding: 0 0.1rem; color: var(--ink); }
 .month-flip {
   display: grid;
@@ -1902,6 +1907,10 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
   pointer-events: none;
   clip-path: inset(-100vmax -100vmax -100vmax -100vmax);
 }
+.crop-turn { display: flex; gap: 0.6rem; }
+.crop-turn .month-flip { width: 2.2rem; height: 2.2rem; background: rgb(255 254 250 / 0.85); }
+.crop-turn .month-flip:disabled { opacity: 0.3; pointer-events: none; }
+.crop-turn .turn-left .pen-icon { scale: -1 1; }
 .crop-zoom { display: flex; align-items: center; gap: 0.8rem; padding: 0.25rem 1rem; background: rgb(255 254 250 / 0.85); border-radius: 999px; }
 .crop-zoom .month-flip { width: 2rem; height: 2rem; }
 .crop-zoom .month-flip:disabled { opacity: 0.3; pointer-events: none; }
