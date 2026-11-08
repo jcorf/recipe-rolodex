@@ -1,32 +1,25 @@
-import type { Draft, Recipe, Settings } from './types';
+import type { Draft } from './types';
+import type { Store } from './store/types';
+import { localStore } from './store/localStore';
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
+/** The one place that still needs a server: reading a recipe page from another site. */
+async function importLink(url: string): Promise<{ found: boolean; draft: Draft }> {
   let res: Response;
   try {
-    res = await fetch(path, {
-      ...init,
-      headers: { 'content-type': 'application/json', ...init?.headers },
+    res = await fetch('/api/import', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url }),
     });
   } catch {
-    throw new Error('The rolodex server isn’t answering. Is `npm run dev` still running?');
+    throw new Error('Couldn’t reach the recipe reader. Check your connection, or write the card by hand.');
   }
-  if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error ?? `Something went wrong (${res.status}).`);
-  return body as T;
+  return body;
 }
 
-export const api = {
-  list: () => call<Recipe[]>('/api/recipes'),
-  create: (draft: Draft) => call<Recipe>('/api/recipes', { method: 'POST', body: JSON.stringify(draft) }),
-  importRecipes: (payload: unknown) =>
-    call<{ added: Recipe[]; skipped: number; invalid: number }>('/api/recipes/import', { method: 'POST', body: JSON.stringify(payload) }),
-  update: (id: string, patch: Draft) =>
-    call<Recipe>(`/api/recipes/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
-  remove: (id: string) => call<void>(`/api/recipes/${id}`, { method: 'DELETE' }),
-  settings: () => call<Settings>('/api/settings'),
-  saveSettings: (patch: Partial<Settings>) =>
-    call<Settings>('/api/settings', { method: 'PUT', body: JSON.stringify(patch) }),
-  importLink: (url: string) =>
-    call<{ found: boolean; draft: Draft }>('/api/import', { method: 'POST', body: JSON.stringify({ url }) }),
-};
+/** Cards and settings live in this browser for now; a signed-in store slots in here later. */
+const store: Store = localStore;
+
+export const api = { ...store, importLink };

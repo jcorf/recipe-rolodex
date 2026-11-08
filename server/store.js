@@ -5,7 +5,7 @@ import path from 'node:path';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DATA_DIR = path.join(root, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'recipes.json');
-const SEED_FILE = path.join(root, 'server', 'seed.json');
+const SEED_FILE = path.join(root, 'src', 'store', 'seed.json');
 
 // Serialize writes so two quick saves never interleave.
 let queue = Promise.resolve();
