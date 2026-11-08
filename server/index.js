@@ -166,7 +166,7 @@ app.put('/api/settings', async (req, res) => {
     glowPalette = req.body.glowPalette;
   }
   const flags = {};
-  for (const key of ['showNewCard', 'showFind', 'flipSound']) {
+  for (const key of ['showNewCard', 'showFind', 'flipSound', 'grainyStamps']) {
     if (req.body?.[key] === undefined) continue;
     if (typeof req.body[key] !== 'boolean') return res.status(400).json({ error: `${key} must be true or false.` });
     flags[key] = req.body[key];

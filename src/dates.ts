@@ -25,6 +25,16 @@ export function shortDay(day: string) {
   return `${MONTH_NAMES[m - 1].slice(0, 3)} ${d}`;
 }
 
+/** A steady "random" number from 0 to 1 for some text (the same text always gives the same one). */
+export function hash01(text: string) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return (h >>> 0) / 4294967296;
+}
+
+/** How far one stamp leans on its day, in degrees (-8 to 8): its own, and the same every time you look. */
+export const stampTilt = (recipeId: string, day: string) => +((hash01(`${recipeId}|${day}`) - 0.5) * 16).toFixed(1);
+
 export const addMonths = (year: number, month: number, by: number) => {
   const d = new Date(year, month + by, 1);
   return { year: d.getFullYear(), month: d.getMonth() };

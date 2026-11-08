@@ -50,6 +50,8 @@ export interface Settings {
   showFind: boolean;
   /** The paper-flick sound when a card flips. */
   flipSound: boolean;
+  /** Stamps on the calendar get a worn, speckled print texture. */
+  grainyStamps: boolean;
   /** Which colours the cursor glow drifts between (a key of GLOWS). */
   glowPalette: GlowKey;
   /** Hex color per divider: one per category plus 'unsorted'. */

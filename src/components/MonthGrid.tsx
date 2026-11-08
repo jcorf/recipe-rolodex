@@ -1,4 +1,4 @@
-import { MONTH_NAMES, WEEKDAYS, monthWeeks, todayYmd } from '../dates';
+import { MONTH_NAMES, WEEKDAYS, monthWeeks, stampTilt, todayYmd } from '../dates';
 import type { Recipe } from '../types';
 import { Stamp } from './Stamp';
 import { dividerFruit } from './FruitMark';
@@ -7,6 +7,8 @@ import { dividerFruit } from './FruitMark';
 export interface StampLook {
   colors: Record<string, string>;
   fruits: Record<string, string>;
+  /** The worn, speckled print look (a setting). */
+  grainy?: boolean;
 }
 
 export const stampFill = (r: Recipe, look: StampLook) => look.colors[r.category || 'unsorted'] ?? '#e4e2dd';
@@ -47,12 +49,13 @@ export function MonthGrid({
                 <>
                   <span className="day-num">{Number(day.slice(8))}</span>
                   {shown.map((r, n) => {
-                    const stamp = <Stamp image={r.image} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} />;
+                    const stamp = <Stamp image={r.image} fill={stampFill(r, look)} fruit={stampFruit(r, look)} label={r.title} grainy={look.grainy} />;
                     const cls = `day-stamp is-${shown.length}-${n}`;
+                    const lean = { rotate: `${stampTilt(r.id, day)}deg` };
                     return onStamp && !onDay ? (
-                      <button key={r.id} type="button" className={cls} aria-label={`Open ${r.title}`} onClick={() => onStamp(r)}>{stamp}</button>
+                      <button key={r.id} type="button" className={cls} style={lean} aria-label={`Open ${r.title}`} onClick={() => onStamp(r)}>{stamp}</button>
                     ) : (
-                      <span key={r.id} className={cls}>{stamp}</span>
+                      <span key={r.id} className={cls} style={lean}>{stamp}</span>
                     );
                   })}
                   {cooked.length > 2 && <span className="day-more">+{cooked.length - 2}</span>}

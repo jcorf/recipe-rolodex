@@ -1572,11 +1572,15 @@ button:disabled { cursor: default; }
   color: var(--ink-soft);
 }
 .is-today .day-num { color: var(--ink); }
-.is-today .day-num::before { /* today is circled in pen */
+.is-today .day-num::after { /* today: a faint pen underline, not a circle (a circle reads as "selected") */
   content: '';
   position: absolute;
-  inset: -0.12rem -0.2rem -0.1rem -0.18rem;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 36' preserveAspectRatio='none'%3E%3Cpath d='M21 3C9 2 2 9 3 19c1 10 10 15 20 14 10-1 16-8 14-17C35 8 28 3 17 4' fill='none' stroke='%233d3c40' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  left: -0.1rem;
+  right: -0.1rem;
+  bottom: -0.05rem;
+  height: 0.3rem;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 8' preserveAspectRatio='none'%3E%3Cpath d='M1 5C8 2.5 14 6.5 21 4s12-1.5 18 0' fill='none' stroke='%233d3c40' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  opacity: 0.5;
   pointer-events: none;
 }
 .day-stamp {
@@ -1592,9 +1596,8 @@ button:disabled { cursor: default; }
   filter: drop-shadow(0 1px 1px rgb(60 55 50 / 0.35)) drop-shadow(0 3px 5px rgb(60 55 50 / 0.2));
   transition: transform 0.25s var(--ease-out);
 }
-.day-stamp.is-1-0 { rotate: -3deg; }
-.day-stamp.is-2-0 { width: 3.2rem; margin-left: -2.3rem; rotate: -6deg; }
-.day-stamp.is-2-1 { width: 3.2rem; margin-left: -0.4rem; top: 1.6rem; rotate: 5deg; }
+.day-stamp.is-2-0 { width: 3.2rem; margin-left: -2.3rem; }
+.day-stamp.is-2-1 { width: 3.2rem; margin-left: -0.4rem; top: 1.6rem; }
 button.day-stamp:hover,
 button.day-stamp:focus-visible { transform: translateY(-3px) scale(1.07); }
 .day-more { position: absolute; z-index: 2; right: 0.3rem; top: 0.2rem; font-family: var(--script); font-size: 0.95rem; color: var(--ink); }
