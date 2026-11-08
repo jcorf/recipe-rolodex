@@ -102,6 +102,20 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
   });
 
   const current = items[index];
+
+  // A sideways swipe flips: right brings the last card back, left goes on. (Up and down are left to scroll the page.)
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
+  const onSwipeEnd = (e: React.PointerEvent) => {
+    const start = swipe.current;
+    swipe.current = null;
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    swiped.current = true; // the click that follows a swipe shouldn't also open or flip a card
+    go(dx > 0 ? -1 : 1);
+  };
   const activate = (item: RolodexItem) => (item.kind === 'recipe' ? onOpen(item.recipe) : go(1));
 
   const onKeyDown = (e: KeyboardEvent | React.KeyboardEvent) => {
@@ -138,6 +152,10 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
 
   return (
     <section className="rolodex" aria-label="Recipe rolodex">
+      <div className="rolodex-pager">
+        <button type="button" aria-label="Previous card" disabled={count < 2} onClick={() => go(-1)}><PenIcon name="left" /></button>
+        <button type="button" aria-label="Next card" disabled={count < 2} onClick={() => go(1)}><PenIcon name="right" /></button>
+      </div>
       <div
         ref={stageRef}
         className="rolodex-stage"
@@ -146,6 +164,19 @@ export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onO
         aria-roledescription="card file"
         aria-label={label}
         onKeyDown={onKeyDown}
+        onPointerDown={(e) => {
+          // not from the stars or the fruit picker, which take their own taps
+          swiped.current = false; // a swipe on a touch screen sends no click, so don't let its flag linger into the next tap
+          swipe.current = (e.target as HTMLElement).closest('button, input, a, .rating') ? null : { x: e.clientX, y: e.clientY };
+        }}
+        onPointerUp={onSwipeEnd}
+        onPointerCancel={() => { swipe.current = null; }}
+        onClickCapture={(e) => {
+          if (!swiped.current) return;
+          swiped.current = false;
+          e.stopPropagation();
+          e.preventDefault();
+        }}
       >
         <div className="rolodex-stack">
           {count === 0 && (
