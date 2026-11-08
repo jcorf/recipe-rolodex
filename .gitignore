@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Local recipe data (user-generated)
+data/
+
+# Impeccable tooling: cache/scratch (design.json + questions are kept)
+.impeccable/review
+.impeccable/hook.cache.json
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

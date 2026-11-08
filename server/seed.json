@@ -1,0 +1,193 @@
+[
+  {
+    "id": "sample-brown-butter-cookies",
+    "title": "brown butter chocolate chip cookies",
+    "sourceUrl": "",
+    "sourceName": "sample card",
+    "image": "",
+    "cuisine": "american",
+    "servings": "18 cookies",
+    "totalTime": "1 hr",
+    "description": "",
+    "ingredients": [
+      "1 cup butter, browned and cooled",
+      "1 cup dark brown sugar",
+      "1/2 cup white sugar",
+      "2 eggs",
+      "2 tsp vanilla",
+      "2 1/4 cups flour",
+      "1 tsp baking soda",
+      "1 tsp salt",
+      "8 oz dark chocolate, chopped",
+      "flaky salt"
+    ],
+    "steps": [
+      "Brown the butter until it smells like toffee, then let it cool for 15 minutes.",
+      "Whisk in both sugars, then the eggs and vanilla.",
+      "Fold in the flour, soda and salt, then the chocolate.",
+      "Rest the dough 30 minutes. Scoop and bake at 350°F for 11 minutes.",
+      "Flaky salt on top while warm."
+    ],
+    "rating": 5,
+    "review": "the toffee-y butter is everything. rest the dough — worth the wait.",
+    "createdAt": "2026-10-02T18:00:00.000Z",
+    "updatedAt": "2026-10-02T18:00:00.000Z",
+    "category": "dessert"
+  },
+  {
+    "id": "sample-gochujang-noodles",
+    "title": "gochujang butter noodles",
+    "sourceUrl": "",
+    "sourceName": "sample card",
+    "image": "",
+    "cuisine": "korean",
+    "servings": "2",
+    "totalTime": "20 min",
+    "description": "",
+    "ingredients": [
+      "8 oz udon or ramen noodles",
+      "3 tbsp butter",
+      "2 tbsp gochujang",
+      "1 tbsp soy sauce",
+      "2 cloves garlic, grated",
+      "1 tsp honey",
+      "scallions + sesame seeds"
+    ],
+    "steps": [
+      "Cook the noodles, saving a splash of the water.",
+      "Melt butter with garlic, stir in gochujang, soy and honey.",
+      "Toss the noodles in the sauce with a little noodle water until glossy.",
+      "Scallions and sesame on top."
+    ],
+    "rating": 4,
+    "review": "weeknight hero. next time add a jammy egg.",
+    "createdAt": "2026-10-09T18:00:00.000Z",
+    "updatedAt": "2026-10-09T18:00:00.000Z",
+    "category": "lunch"
+  },
+  {
+    "id": "sample-lemon-ricotta-pasta",
+    "title": "lemon ricotta pasta",
+    "sourceUrl": "",
+    "sourceName": "sample card",
+    "image": "",
+    "cuisine": "italian",
+    "servings": "4",
+    "totalTime": "25 min",
+    "description": "",
+    "ingredients": [
+      "1 lb rigatoni",
+      "1 cup whole-milk ricotta",
+      "1 lemon, zested and juiced",
+      "1/2 cup parmesan",
+      "black pepper",
+      "a handful of basil"
+    ],
+    "steps": [
+      "Boil the pasta in well-salted water.",
+      "Stir ricotta, lemon zest, juice, parmesan and lots of pepper together.",
+      "Toss with the hot pasta and enough pasta water to make it silky.",
+      "Tear basil over the top."
+    ],
+    "rating": 4,
+    "review": "",
+    "createdAt": "2026-10-14T18:00:00.000Z",
+    "updatedAt": "2026-10-14T18:00:00.000Z",
+    "category": "dinner"
+  },
+  {
+    "id": "sample-shakshuka",
+    "title": "shakshuka",
+    "sourceUrl": "",
+    "sourceName": "sample card",
+    "image": "",
+    "cuisine": "middle eastern",
+    "servings": "3",
+    "totalTime": "35 min",
+    "description": "",
+    "ingredients": [
+      "2 tbsp olive oil",
+      "1 onion, sliced",
+      "1 red pepper, sliced",
+      "3 cloves garlic",
+      "1 tsp cumin",
+      "1 tsp paprika",
+      "1 can (28 oz) crushed tomatoes",
+      "5 eggs",
+      "feta + parsley",
+      "crusty bread"
+    ],
+    "steps": [
+      "Soften onion and pepper in the oil, about 8 minutes.",
+      "Add garlic and spices for a minute, then the tomatoes. Simmer 10 minutes.",
+      "Make wells and crack in the eggs. Cover until the whites set.",
+      "Crumble feta, scatter parsley, serve with bread."
+    ],
+    "rating": 0,
+    "review": "",
+    "createdAt": "2026-10-20T18:00:00.000Z",
+    "updatedAt": "2026-10-20T18:00:00.000Z",
+    "category": "breakfast"
+  },
+  {
+    "id": "sample-miso-salmon",
+    "title": "miso glazed salmon",
+    "sourceUrl": "",
+    "sourceName": "sample card",
+    "image": "",
+    "cuisine": "japanese",
+    "servings": "2",
+    "totalTime": "30 min",
+    "description": "",
+    "ingredients": [
+      "2 salmon fillets",
+      "2 tbsp white miso",
+      "1 tbsp mirin",
+      "1 tbsp maple syrup",
+      "1 tsp rice vinegar",
+      "rice + cucumber to serve"
+    ],
+    "steps": [
+      "Whisk miso, mirin, maple and vinegar.",
+      "Brush over the salmon and let it sit 15 minutes.",
+      "Broil 7–9 minutes until the glaze catches.",
+      "Serve with rice and smashed cucumber."
+    ],
+    "rating": 3,
+    "review": "glaze burns fast — watch it the last two minutes.",
+    "createdAt": "2026-10-27T18:00:00.000Z",
+    "updatedAt": "2026-10-27T18:00:00.000Z",
+    "category": "dinner"
+  },
+  {
+    "id": "sample-apple-galette",
+    "title": "apple galette",
+    "sourceUrl": "",
+    "sourceName": "sample card",
+    "image": "",
+    "cuisine": "french",
+    "servings": "6",
+    "totalTime": "1 hr 30 min",
+    "description": "",
+    "ingredients": [
+      "1 pie crust",
+      "3 apples, thinly sliced",
+      "3 tbsp sugar",
+      "1 tsp cinnamon",
+      "1 tbsp lemon juice",
+      "1 egg, beaten",
+      "turbinado sugar"
+    ],
+    "steps": [
+      "Toss the apples with sugar, cinnamon and lemon.",
+      "Roll the crust into a rough circle and pile the apples in the middle.",
+      "Fold the edges over, brush with egg, sprinkle with turbinado.",
+      "Bake at 400°F for 40–45 minutes until deep golden."
+    ],
+    "rating": 0,
+    "review": "",
+    "createdAt": "2026-11-01T18:00:00.000Z",
+    "updatedAt": "2026-11-01T18:00:00.000Z",
+    "category": "dessert"
+  }
+]

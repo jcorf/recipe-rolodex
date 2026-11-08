@@ -1,0 +1,146 @@
+<svg xmlns="http://w3.org" viewBox="0 0 1000 650" width="100%" height="100%">
+  <defs>
+    <!-- Light, tight, fine-grain handmade cotton paper texture filter -->
+    <filter id="light-tight-texture" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="4" result="fineNoise" />
+      <feDiffuseLighting in="fineNoise" lighting-color="#ffffff" surfaceScale="1.2" result="lightEffect">
+        <feDistantLight azimuth="45" elevation="65" />
+      </feDiffuseLighting>
+      <feBlend mode="multiply" in="SourceGraphic" in2="lightEffect" />
+    </filter>
+    
+    <!-- Clean Google Font Setup -->
+    <style>
+      @import url('https://googleapis.com');
+      .title-text { font-family: 'Cedarville Cursive', cursive; font-size: 38px; fill: #111111; text-anchor: middle; }
+      .meta-label { font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; fill: #666; text-transform: uppercase; letter-spacing: 1.5px; }
+      .meta-value { font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 400; fill: #222; }
+      .about-heading { font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; fill: #444; text-transform: uppercase; letter-spacing: 2px; }
+      .about-body { font-family: 'Cedarville Cursive', cursive; font-size: 16px; fill: #333; }
+      .section-heading { font-family: 'Cedarville Cursive', cursive; font-size: 28px; fill: #111111; }
+      .sub-heading { font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; fill: #555; text-transform: uppercase; letter-spacing: 1.2px; }
+      .body-text { font-family: 'Cedarville Cursive', cursive; font-size: 16px; fill: #222222; }
+      .footer-text { font-family: 'Montserrat', sans-serif; font-size: 9px; font-weight: 500; fill: #888; letter-spacing: 2.5px; text-transform: uppercase; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <!-- Main Card Body with minimal crisp corner rounding -->
+  <rect x="15" y="15" width="970" height="620" rx="4" fill="#faf9f6" filter="url(#light-tight-texture)" stroke="#eae7df" stroke-width="1.2" />
+
+  <!-- HEADER HEADER SECTION -->
+  <g transform="translate(0, 0)">
+    <!-- Recipe Title -->
+    <text x="500" y="70" class="title-text">Vanilla Cupcake Recipe</text>
+    
+    <!-- Tight Gold Star Rating row -->
+    <g transform="translate(500, 95) scale(0.75)">
+      <g transform="translate(-64, 0)">
+        <polygon points="10,0 13,7 20,7 15,11 17,18 10,14 3,18 5,11 0,7 7,7" fill="#cfb042" />
+        <polygon points="36,0 39,7 46,7 41,11 43,18 36,14 29,18 31,11 26,7 33,7" fill="#cfb042" />
+        <polygon points="62,0 65,7 72,7 67,11 69,18 62,14 55,18 57,11 52,7 59,7" fill="#cfb042" />
+        <polygon points="88,0 91,7 98,7 93,11 95,18 88,14 81,18 83,11 78,7 85,7" fill="#cfb042" />
+        <polygon points="114,0 117,7 124,7 119,11 121,18 114,14 107,18 109,11 104,7 111,7" fill="#cfb042" />
+      </g>
+    </g>
+
+    <!-- Essential Meta row -->
+    <g transform="translate(190, 130)">
+      <text x="0" y="0" class="meta-label">Cuisine:</text>
+      <text x="65" y="0" class="meta-value">American</text>
+      
+      <line x1="150" y1="-9" x2="150" y2="3" stroke="#ddd" stroke-width="1" />
+      
+      <text x="175" y="0" class="meta-label">Serves:</text>
+      <text x="235" y="0" class="meta-value">12</text>
+      
+      <line x1="310" y1="-9" x2="310" y2="3" stroke="#ddd" stroke-width="1" />
+      
+      <text x="335" y="0" class="meta-label">Prep:</text>
+      <text x="380" y="0" class="meta-value">40m</text>
+      
+      <line x1="445" y1="-9" x2="445" y2="3" stroke="#ddd" stroke-width="1" />
+      
+      <text x="470" y="0" class="meta-label">Cook:</text>
+      <text x="515" y="0" class="meta-value">20m</text>
+    </g>
+
+    <!-- Compact About Description Section -->
+    <g transform="translate(50, 150)">
+      <rect x="0" y="0" width="900" height="45" fill="#f5f2ea" opacity="0.4" rx="3" />
+      <text x="20" y="26" class="about-heading">About:</text>
+      <text x="80" y="27" class="about-body">A timeless sweet treat featuring a light, airy crumb structure paired perfectly with classic buttercream icing.</text>
+    </g>
+  </g>
+
+  <!-- COLUMN CONTENT LAYOUT -->
+  
+  <!-- Left Column: Ingredients Area -->
+  <g transform="translate(50, 210)">
+    <rect x="0" y="0" width="310" height="375" fill="#f5f2ea" opacity="0.5" rx="3" />
+    <text x="20" y="35" class="section-heading">Ingredients</text>
+    
+    <text x="20" y="65" class="sub-heading">Cupcake Mix</text>
+    <g transform="translate(20, 72)">
+      <!-- Item Rows with 25px tracking intervals -->
+      <text x="0" y="16" class="body-text">120g</text><text x="65" y="16" class="body-text">Butter</text>
+      <line x1="0" y1="22" x2="270" y2="22" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="41" class="body-text">120g</text><text x="65" y="41" class="body-text">Caster Sugar</text>
+      <line x1="0" y1="47" x2="270" y2="47" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="66" class="body-text">1</text><text x="65" y="66" class="body-text">Egg</text>
+      <line x1="0" y1="72" x2="270" y2="72" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="91" class="body-text">1 tsp</text><text x="65" y="91" class="body-text">Vanilla extract</text>
+      <line x1="0" y1="97" x2="270" y2="97" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="116" class="body-text">120g</text><text x="65" y="116" class="body-text">Self-raising flour</text>
+      <line x1="0" y1="122" x2="270" y2="122" stroke="#bbb6ab" stroke-width="0.5" />
+    </g>
+
+    <text x="20" y="225" class="sub-heading">Icing</text>
+    <g transform="translate(20, 232)">
+      <text x="0" y="16" class="body-text">140g</text><text x="65" y="16" class="body-text">Butter</text>
+      <line x1="0" y1="22" x2="270" y2="22" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="41" class="body-text">275g</text><text x="65" y="41" class="body-text">Icing Sugar</text>
+      <line x1="0" y1="47" x2="270" y2="47" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="66" class="body-text">2 tbsp</text><text x="65" y="66" class="body-text">Milk</text>
+      <line x1="0" y1="72" x2="270" y2="72" stroke="#bbb6ab" stroke-width="0.5" />
+    </g>
+  </g>
+
+  <!-- Right Column: Directions Area -->
+  <g transform="translate(380, 210)">
+    <rect x="0" y="0" width="570" height="375" fill="#f5f2ea" opacity="0.5" rx="3" />
+    <text x="25" y="35" class="section-heading">Directions</text>
+    
+    <!-- Tighter 34px vertical line height spacing grid -->
+    <g transform="translate(25, 60)">
+      <text x="0" y="18" class="body-text">1. Heat oven to 180C/160C fan/gas; line a 12-hole muffin tray with paper cases.</text>
+      <line x1="0" y1="26" x2="520" y2="26" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="52" class="body-text">2. Cream the butter, sugar, vanilla, and eggs in a mixing bowl until light.</text>
+      <line x1="0" y1="60" x2="520" y2="60" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="86" class="body-text">3. Gently fold in the self-raising flour and milk until smooth and uniform.</text>
+      <line x1="0" y1="94" x2="520" y2="94" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="120" class="body-text">4. Spoon mixture evenly into cases. Bake for 10-15 mins, then cool on a wire rack.</text>
+      <line x1="0" y1="128" x2="520" y2="128" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="154" class="body-text">5. For icing: beat butter, icing sugar, and milk until smooth and creamy.</text>
+      <line x1="0" y1="162" x2="520" y2="162" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="188" class="body-text">6. Transfer the finished buttercream frosting into your piping bag setup.</text>
+      <line x1="0" y1="196" x2="520" y2="196" stroke="#bbb6ab" stroke-width="0.5" />
+      
+      <text x="0" y="222" class="body-text">7. Pipe a classic swirl over the cooled cupcake base and enjoy!</text>
+      <line x1="0" y1="230" x2="520" y2="230" stroke="#bbb6ab" stroke-width="0.5" />
+    </g>
+  </g>
+
+  <!-- Bottom Footer Signature Line -->
+  <text x="500" y="612" class="footer-text">From the kitchen of Grandma &amp; Sonia</text>
+</svg>
