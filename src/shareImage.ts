@@ -202,8 +202,7 @@ function drawStar(ctx: CanvasRenderingContext2D, variant: number, fill: number, 
 export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow, white }: ShareContext): Promise<Blob> {
   const hand = handFamily(recipeFont);
   const handPx = handSize(recipeFont);
-  const lower = recipeFont !== 'print';
-  const fix = (t: string) => (lower ? t.toLowerCase() : t);
+  const fix = (t: string) => t.toLowerCase(); // everything is written lowercase, like the page
   await ensureFonts([LABEL_FONT, hand]);
   const photo = await recipePhoto(recipe, 'main');
 
@@ -221,7 +220,7 @@ export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow, whit
   const meta = (eatenOut
     ? [recipe.price, recipe.venue, recipe.location, recipe.cuisine]
     : [recipe.totalTime, servesLabel(recipe.servings), recipe.cuisine]
-  ).filter(Boolean).join('  ·  ');
+  ).filter(Boolean).join('  ·  ').toLowerCase();
   m.font = `${handPx + 3}px "${hand}"`;
   // a recipe's note sits under the title; a restaurant's thoughts get their own column instead
   const noteLines = recipe.review && !eatenOut ? wrap(m, fix(recipe.review), inner) : [];
@@ -303,7 +302,7 @@ export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow, whit
     if (eatenOut && recipe.address) { // the extra line for the spot itself
       c.font = `17px "${LABEL_FONT}"`;
       c.fillStyle = INK_SOFT;
-      c.fillText(recipe.address, PAD, addressY + 22);
+      c.fillText(recipe.address.toLowerCase(), PAD, addressY + 22);
     }
     if (noteLines.length) {
       c.font = `${handPx + 3}px "${hand}"`;
@@ -371,7 +370,7 @@ export async function renderRecipeImage(recipe: Recipe, { recipeFont, glow, whit
     c.textAlign = 'right';
     c.font = `22px "${LABEL_FONT}"`;
     const from = recipe.sourceName && recipe.sourceName !== 'sample card' ? recipe.sourceName : recipe.sourceUrl ? new URL(recipe.sourceUrl).hostname.replace(/^www\./, '') : '';
-    c.fillText(`xo, ${from ? `from ${from}` : eatenOut ? `from ${recipe.location || 'a night out'}` : 'from my own kitchen'}`, CW - PAD, footY);
+    c.fillText(`xo, ${from ? `from ${from}` : eatenOut ? `from ${recipe.location || 'a night out'}` : 'from my own kitchen'}`.toLowerCase(), CW - PAD, footY);
     c.textAlign = 'left';
 
     const margin = 40;

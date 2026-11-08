@@ -153,6 +153,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showRecipes: true,
   showRestaurants: false, // a feature to turn on
   ateOutStyle: 'circle',
+  ateOutColor: '',
   stampFinish: 'plain',
   siteTitle: 'my recipes',
   glowPalette: 'peach',
@@ -225,6 +226,10 @@ export function applySettings(current: Settings, patch: Partial<Settings>): Sett
   if (patch.ateOutStyle !== undefined) {
     if (!ATE_OUT_STYLES.some((s) => s.key === patch.ateOutStyle)) fail('Pick a circle or a bordered stamp.');
     next.ateOutStyle = patch.ateOutStyle;
+  }
+  if (patch.ateOutColor !== undefined) {
+    if (patch.ateOutColor !== '' && !/^#[0-9a-f]{6}$/i.test(patch.ateOutColor)) fail(`“${patch.ateOutColor}” isn’t a color. Use a hex value like #f4d2de.`);
+    next.ateOutColor = patch.ateOutColor.toLowerCase();
   }
   if (patch.glowPalette !== undefined) {
     if (!GLOWS.some((g) => g.key === patch.glowPalette)) fail('Pick a glow from the list.');

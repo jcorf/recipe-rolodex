@@ -181,7 +181,7 @@ export default function App() {
   /** A new card is a restaurant from the start when restaurants are all that's in the box. */
   const newDraft: Draft = showRestaurants && !showRecipes ? { kind: 'restaurant' } : {};
 
-  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {}, finish: settings?.stampFinish ?? 'plain', ateOutStyle: settings?.ateOutStyle ?? 'circle' };
+  const stampLook = { colors: settings?.dividerColors ?? {}, fruits: settings?.dividerFruits ?? {}, finish: settings?.stampFinish ?? 'plain', ateOutStyle: settings?.ateOutStyle ?? 'circle', ateOutColor: settings?.ateOutColor ?? '' };
   const closeShare = useCallback(() => setShare(null), []);
   const closeCalendar = useCallback(() => setCalendarOpen(false), []);
   const shareRecipe = share?.kind === 'recipe' ? recipes.find((r) => r.id === share.id) : undefined;
@@ -312,6 +312,7 @@ export default function App() {
           look={stampLook}
           onClose={closeCalendar}
           onAteOutStyle={(ateOutStyle) => changeSettings({ ateOutStyle })}
+          onAteOutColor={(ateOutColor) => changeSettings({ ateOutColor })}
           onOpenRecipe={(r) => { setCalendarOpen(false); setOpen({ kind: 'saved', id: stampCardId(r) }); }}
           onFinish={(stampFinish) => changeSettings({ stampFinish })}
           onShare={(year, month, seed) => setShare({ kind: 'month', year, month, seed })}

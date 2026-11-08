@@ -31,6 +31,8 @@ export const PATHS = {
   right: 'M9.4 5.4c2.4 2.1 4.5 4.4 6.2 6.7-1.8 2.3-3.9 4.5-6.3 6.5',
   // a fork and a knife: a restaurant
   fork: 'M7.6 4.4c-.3 2.1-.3 4.1 0 5.9.1 1.1.9 1.7 1.7 1.8l-.1 7.9 M5.5 4.6c-.1 1.9-.1 3.7.1 5.5 M9.9 4.5c.1 1.9.1 3.7-.1 5.6 M16 4.3c-1.8 1.7-2.4 4.3-2 6.9.2 1 1 1.4 2 1.4l-.1 7',
+  // a curved arrow turning clockwise: rotate
+  turn: 'M18.3 8.2A7.2 7.2 0 1 0 19 13.6 M18.9 4.3l-.4 4.3-4.3-.4',
   // a light plus: add
   plus: 'M12 6c.1 4-.1 8 0 12 M6 12c4 .1 8-.1 12 0',
   // a minus: zoom out
