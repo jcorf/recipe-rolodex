@@ -123,6 +123,7 @@ export function SurpriseTag({
         </div>
       )}
       <div className="surprise-tag">
+        <span className="tag-paper" aria-hidden="true" />
         <button
           type="button"
           className="surprise-go"

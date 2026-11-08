@@ -4,7 +4,7 @@ import { CATEGORIES, GLOWS, type Draft, type Recipe, type Settings } from './typ
 import { Rolodex, buildItems, type RolodexItem } from './components/Rolodex';
 import { CardStack, FindSlip, SurpriseTag, type SurpriseOptions } from './components/DeskObjects';
 import {
-  exportAll, exportAllMarkdown, exportOne, exportOneMarkdown, importFiles, importMessage,
+  exportCard, exportCards, importFiles, importMessage,
   loadExportFormat, saveExportFormat, type ExportFormat,
 } from './exportRecipes';
 import { FruitMark } from './components/FruitMark';
@@ -156,6 +156,7 @@ export default function App() {
             <Rolodex
               dividerColors={settings?.dividerColors ?? {}}
               dividerFruits={settings?.dividerFruits ?? {}}
+              flipSound={settings?.flipSound ?? true}
               onDividerFruit={(group, glyph) =>
                 changeSettings({ dividerFruits: { ...settings?.dividerFruits, [group]: glyph } })
               }
@@ -200,11 +201,13 @@ export default function App() {
           if (patch.showFind === false) find(''); // putting find away clears it, so nothing stays hidden
           changeSettings(patch);
         }}
+        flipSound={settings?.flipSound ?? true}
+        onFlipSound={(flipSound) => changeSettings({ flipSound })}
         glowPalette={settings?.glowPalette ?? 'peach'}
         onGlowPalette={(glowPalette) => changeSettings({ glowPalette })}
         exportFormat={exportFormat}
         onExportFormat={(format) => { setExportFormat(format); saveExportFormat(format); }}
-        onExportAll={() => (exportFormat === 'md' ? exportAllMarkdown(recipes) : exportAll(recipes))}
+        onExportAll={() => exportCards(recipes, exportFormat)}
         onImportFiles={async (files) => {
           try {
             const summary = await importFiles(files, api.importRecipes);
@@ -222,7 +225,7 @@ export default function App() {
           recipe={openRecipe}
           isNew={false}
           exportLabel={`export card (.${exportFormat})`}
-          onExport={() => (exportFormat === 'md' ? exportOneMarkdown(openRecipe) : exportOne(openRecipe))}
+          onExport={() => exportCard(openRecipe, exportFormat)}
           onClose={close}
           onSave={async (patch) => {
             const saved = await api.update(openRecipe.id, patch);

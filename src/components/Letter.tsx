@@ -89,6 +89,7 @@ function ActionTag({
       disabled={disabled}
       autoFocus={autoFocus}
     >
+      <span className="tag-paper" aria-hidden="true" />
       <PenIcon name={icon} />
       <span className={written ? 'tag-written' : 'action-label'} aria-hidden="true">{label}</span>
     </button>

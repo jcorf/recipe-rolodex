@@ -51,6 +51,8 @@ export const DEFAULT_SETTINGS = {
   /** Desk objects you can put away: the blank-card stack and the find slip. */
   showNewCard: true,
   showFind: true,
+  /** The paper-flick sound when a card flips. */
+  flipSound: true,
   /** Colours the cursor glow drifts between. */
   glowPalette: 'peach',
   /** Pastel stock for each category divider card. */

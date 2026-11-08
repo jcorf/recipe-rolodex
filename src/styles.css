@@ -187,12 +187,10 @@ button:disabled { cursor: default; }
   position: relative;
   display: inline-flex;
   align-items: stretch;
-  border-radius: 6px 10px 10px 6px;
-  background: var(--kraft-light);
   color: var(--ink);
-  box-shadow: 0 1px 1px rgb(70 50 30 / 0.25), 0 3px 8px rgb(70 50 30 / 0.15);
+  filter: drop-shadow(0 1px 1px rgb(70 50 30 / 0.3)) drop-shadow(0 3px 6px rgb(70 50 30 / 0.16));
   rotate: 1.5deg;
-  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+  transition: transform 0.25s var(--ease-out), filter 0.25s var(--ease-out);
 }
 .surprise-tag::before { /* punched hole, like the card tags */
   content: '';
@@ -209,7 +207,7 @@ button:disabled { cursor: default; }
 .surprise-tag:hover,
 .surprise-tag:focus-within {
   transform: translateY(-2px) rotate(-1.5deg);
-  box-shadow: 0 2px 2px rgb(70 50 30 / 0.22), 0 6px 14px rgb(70 50 30 / 0.18);
+  filter: drop-shadow(0 2px 2px rgb(70 50 30 / 0.24)) drop-shadow(0 6px 10px rgb(70 50 30 / 0.2));
 }
 .surprise-go,
 .surprise-more {
@@ -1077,30 +1075,37 @@ button:disabled { cursor: default; }
   height: 3.3rem;
   padding: 0.55rem 0 0;
   border: none;
-  border-radius: 8px 8px 6px 6px;
-  background: var(--kraft-light);
+  background: none;
   color: var(--ink);
-  box-shadow: 0 1px 1px rgb(70 50 30 / 0.25), 0 3px 8px rgb(70 50 30 / 0.15);
-  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out), background 0.2s;
+  filter: drop-shadow(0 1px 1px rgb(70 50 30 / 0.3)) drop-shadow(0 3px 6px rgb(70 50 30 / 0.16));
+  transition: transform 0.25s var(--ease-out), filter 0.25s var(--ease-out);
 }
-/* the tags are cut from the same cotton stock as the cards: a grain layer under the icon */
+/* Tags are cut from the same torn cotton stock as the cards. The paper is its own masked layer
+   (deckle edge + grain) so the hover label, which sits outside the tag, isn't clipped by the mask;
+   the shadow follows the torn edge. */
 .action-tag,
 .surprise-tag { isolation: isolate; }
-.action-tag::after,
-.surprise-tag::after {
-  content: '';
+.tag-paper {
   position: absolute;
   inset: 0;
   z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  background: url('/cotton-2.webp') 0 0 / 256px 256px;
-  opacity: 1;
+  overflow: hidden;
+  background: var(--tag-bg, var(--kraft-light));
+  -webkit-mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
+  mask: url('/deckle.svg') 0 0 / 100% 100% no-repeat;
 }
-.action-tag:nth-child(2)::after { background-image: url('/cotton-4.webp'); background-position: 90px 40px; }
-.action-tag:nth-child(3)::after { background-image: url('/cotton-1.webp'); background-position: 30px 120px; }
-.action-tag.is-primary::after,
-.action-tag.is-danger::after { opacity: 0.5; }
+.tag-paper::before {
+  content: '';
+  position: absolute;
+  inset: -60%;
+  background: var(--tag-grain, url('/cotton-2.webp')) 0 0 / 256px 256px;
+  rotate: var(--tag-grain-rot, 20deg);
+  opacity: var(--tag-grain-opacity, 1);
+}
+.action-tag:nth-child(2) { --tag-grain: url('/cotton-4.webp'); --tag-grain-rot: 140deg; }
+.action-tag:nth-child(3) { --tag-grain: url('/cotton-1.webp'); --tag-grain-rot: 250deg; }
+.action-tag.is-primary,
+.action-tag.is-danger { --tag-grain-opacity: 0.5; }
 .action-tag::before { /* punched hole at the top of the tag */
   content: '';
   position: absolute;
@@ -1116,15 +1121,15 @@ button:disabled { cursor: default; }
 .action-tag:hover:not(:disabled),
 .action-tag:focus-visible {
   transform: translateY(-1px) rotate(-3deg);
-  box-shadow: 0 2px 2px rgb(70 50 30 / 0.22), 0 6px 14px rgb(70 50 30 / 0.18);
+  filter: drop-shadow(0 2px 2px rgb(70 50 30 / 0.24)) drop-shadow(0 6px 10px rgb(70 50 30 / 0.2));
 }
 .action-tag:disabled { opacity: 0.55; }
-.action-tag.is-primary { background: var(--enamel); color: #fff4ea; }
-.action-tag.is-primary:hover:not(:disabled) { background: #c23a44; }
-.action-tag.is-danger { background: var(--enamel-deep); color: #fff4ea; }
-.action-tag.is-quiet { background: rgb(255 254 250 / 0.55); box-shadow: none; color: var(--ink-soft); }
+.action-tag.is-primary { --tag-bg: var(--enamel); color: #fff4ea; }
+.action-tag.is-primary:hover:not(:disabled) { --tag-bg: #c23a44; }
+.action-tag.is-danger { --tag-bg: var(--enamel-deep); color: #fff4ea; }
+.action-tag.is-quiet { --tag-bg: rgb(255 254 250 / 0.6); filter: none; color: var(--ink-soft); }
 .action-tag.is-quiet::before { display: none; }
-.action-tag.is-quiet:hover { background: rgb(255 254 250 / 0.85); }
+.action-tag.is-quiet:hover { --tag-bg: rgb(255 254 250 / 0.9); }
 
 .action-tag.is-written {
   width: auto;
@@ -1433,11 +1438,8 @@ button:disabled { cursor: default; }
   line-height: 1.55;
 }
 .file-option .sort-label { white-space: nowrap; }
-.format-choice { display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 0.1rem 1.6rem; font-family: var(--script); font-size: 0.95rem; color: var(--ink-soft); }
-.format-option { cursor: pointer; font-family: var(--sans); font-size: 0.85rem; color: var(--ink); }
-.format-option .sort-label { padding: 0 0.3em; }
-.format-option:hover .sort-label,
-.format-option:has(:focus-visible) .sort-label { transform: none; color: var(--enamel-deep); }
+.format-choice { display: flex; align-items: baseline; gap: 0.6rem; margin: 0.1rem 0 0.15rem 1.6rem; font-family: var(--script); font-size: 0.95rem; color: var(--ink-soft); }
+.format-choice .ink-select { min-width: 5.5rem; font-size: 0.9rem; }
 .file-option .pen-icon { flex: none; width: 1.15rem; height: 1.15rem; color: var(--ink-soft); transition: translate 0.2s var(--ease-out), color 0.2s; }
 .file-option:hover .pen-icon,
 .file-option:focus-visible .pen-icon { color: var(--enamel-deep); translate: 0 -0.1rem; }
@@ -1471,9 +1473,9 @@ button:disabled { cursor: default; }
   display: grid;
   place-items: center;
   flex: none;
-  width: 1.45rem;
-  height: 1.45rem;
-  font-size: 0.95rem;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.15rem;
   transition: transform 0.2s var(--ease-out);
 }
 .help-mark .pen-circle { inset: 0; width: 100%; height: 100%; }

@@ -6,6 +6,7 @@ import { StarRating } from './StarRating';
 import { cardLook, CircledCount, InkFrame, InkRule, TabEdge } from './ink';
 import { ratingLabel, servesLabel, splitAmount, stepText } from '../recipeText';
 import { dividerFruit, Fruit, FruitPicker } from './FruitMark';
+import { playFlip } from '../flipSound';
 
 const BEHIND = 6; // cards visible behind the front one
 
@@ -58,15 +59,24 @@ interface Props {
   /** When true, the arrow keys flip the rolodex from anywhere on the desk (no click needed first). */
   keyboard: boolean;
   dividerFruits: Record<string, string>;
+  /** Play the paper-flick sound whenever the front card changes. */
+  flipSound: boolean;
   onDividerFruit: (group: string, glyph: string) => void;
   onRate: (recipe: Recipe, rating: number) => void;
 }
 
-export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onOpen, onNew, emptyMessage, keyboard, dividerFruits, onDividerFruit, onRate }: Props) {
+export function Rolodex({ items, dividerColors, index, recipeCount, onIndex, onOpen, onNew, emptyMessage, keyboard, dividerFruits, flipSound, onDividerFruit, onRate }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const count = items.length;
   // The box is a loop: past the last card comes the first, and back from the first is the last.
   const go = (delta: number) => count > 1 && onIndex(mod(index + delta, count));
+
+  // Every change of the front card (keys, wheel, a tab, find, surprise me) gets the flick.
+  const shownIndex = useRef(index);
+  useEffect(() => {
+    if (shownIndex.current !== index && flipSound) playFlip();
+    shownIndex.current = index;
+  }, [index, flipSound]);
 
   // Take keyboard focus on load, so the arrow keys work before the first click
   // (otherwise focus can still be in the address bar).

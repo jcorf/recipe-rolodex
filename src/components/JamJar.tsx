@@ -4,7 +4,8 @@ import { SORT_OPTIONS } from '../sorting';
 import { useDismiss } from '../useDismiss';
 import { PenCircle } from './ink';
 import { PenIcon } from './PenIcons';
-import type { ExportFormat } from '../exportRecipes';
+import { EXPORT_FORMATS, type ExportFormat } from '../exportRecipes';
+import { InkSelect } from './InkSelect';
 
 /**
  * The strawberry jam jar in the desk's bottom-right corner: the way into settings.
@@ -34,7 +35,7 @@ function HelpNote() {
         <li><b>find</b> with <kbd>/</kbd>. it looks through names, meals, cuisines and ingredients.</li>
         <li><b>surprise me</b> picks something you haven’t cooked yet.</li>
         <li>click a <b>fruit</b> to swap it for another.</li>
-        <li><b>the box</b>: save a copy of every recipe (and any open card) as .json to add back later, or .md to read or print.</li>
+        <li><b>the box</b>: save a copy of every recipe (and any open card) as .json to add back later, or as .md, .txt, .docx or .pdf to read, edit or print.</li>
       </ul>
       <span className="pop-title">why I made it</span>
       <p>
@@ -46,7 +47,7 @@ function HelpNote() {
 }
 
 export function JamJar({
-  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, exportFormat, onExportFormat, onImportFiles, glowPalette, onGlowPalette,
+  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, exportFormat, onExportFormat, onImportFiles, flipSound, onFlipSound, glowPalette, onGlowPalette,
 }: {
   sortBy: SortBy;
   onSortBy: (sortBy: SortBy) => void;
@@ -62,6 +63,9 @@ export function JamJar({
   onExportFormat: (format: ExportFormat) => void;
   /** Add recipes from exported .json files; resolves to a line saying what happened. */
   onImportFiles: (files: File[]) => Promise<string>;
+  /** The paper-flick sound when a card flips. */
+  flipSound: boolean;
+  onFlipSound: (on: boolean) => void;
   /** The colours the cursor glow drifts between. */
   glowPalette: GlowKey;
   onGlowPalette: (glow: GlowKey) => void;
@@ -144,6 +148,13 @@ export function JamJar({
                   </span>
                 </label>
               ))}
+              <label className={`sort-option ${flipSound ? 'is-chosen' : ''}`}>
+                <input type="checkbox" className="visually-hidden" checked={flipSound} onChange={(e) => onFlipSound(e.target.checked)} />
+                <span className="sort-label">
+                  flip sound
+                  {flipSound && <PenCircle variant={4} />}
+                </span>
+              </label>
             </div>
             <div role="radiogroup" aria-labelledby="glow-title" className="setting-group">
               <span id="glow-title" className="pop-title">cursor glow</span>
@@ -174,23 +185,14 @@ export function JamJar({
                 <PenIcon name="export" />
                 <span className="sort-label">save a copy</span>
               </button>
-              <div role="radiogroup" aria-label="Save copies as" className="format-choice">
+              <div className="format-choice">
                 <span>as</span>
-                {([['json', '.json', 'to add back later'], ['md', '.md', 'to read or print']] as const).map(([key, label, hint], i) => (
-                  <label key={key} className="format-option" title={hint}>
-                    <input
-                      type="radio"
-                      name="export-format"
-                      className="visually-hidden"
-                      checked={exportFormat === key}
-                      onChange={() => onExportFormat(key)}
-                    />
-                    <span className="sort-label">
-                      {label}
-                      {exportFormat === key && <PenCircle variant={i + 1} />}
-                    </span>
-                  </label>
-                ))}
+                <InkSelect
+                  label="Save copies as"
+                  value={exportFormat}
+                  onChange={(f) => onExportFormat(f as ExportFormat)}
+                  options={EXPORT_FORMATS.map((f) => ({ value: f.key, label: f.label }))}
+                />
               </div>
               <button type="button" className="sort-option file-option" onClick={() => fileRef.current?.click()}>
                 <PenIcon name="import" />

@@ -46,6 +46,8 @@ export interface Settings {
   /** Whether the blank-card stack and the find slip are out on the desk. */
   showNewCard: boolean;
   showFind: boolean;
+  /** The paper-flick sound when a card flips. */
+  flipSound: boolean;
   /** Which colours the cursor glow drifts between (a key of GLOWS). */
   glowPalette: GlowKey;
   /** Hex color per divider: one per category plus 'unsorted'. */
