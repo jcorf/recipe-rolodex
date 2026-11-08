@@ -3,7 +3,7 @@ import { api } from './api';
 import { CATEGORIES, GLOWS, type Draft, type Recipe, type Settings } from './types';
 import { Rolodex, buildItems, type RolodexItem } from './components/Rolodex';
 import { CardStack, FindSlip, SurpriseTag, type SurpriseOptions } from './components/DeskObjects';
-import { exportAll, importFiles, importMessage } from './exportRecipes';
+import { exportAll, exportAllMarkdown, importFiles, importMessage } from './exportRecipes';
 import { FruitMark } from './components/FruitMark';
 import { JamJar } from './components/JamJar';
 import { useDriftingLight } from './useDriftingLight';
@@ -199,6 +199,7 @@ export default function App() {
         glowPalette={settings?.glowPalette ?? 'peach'}
         onGlowPalette={(glowPalette) => changeSettings({ glowPalette })}
         onExportAll={() => exportAll(recipes)}
+        onExportMarkdown={() => exportAllMarkdown(recipes)}
         onImportFiles={async (files) => {
           try {
             const summary = await importFiles(files, api.importRecipes);

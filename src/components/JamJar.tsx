@@ -32,7 +32,7 @@ function HelpNote() {
         <li><b>find</b> with <kbd>/</kbd>. it looks through names, meals, cuisines and ingredients.</li>
         <li><b>surprise me</b> picks something you haven’t cooked yet.</li>
         <li>click a <b>fruit</b> to swap it for another.</li>
-        <li><b>the box</b>: save a copy of every recipe, or add some back from .json files.</li>
+        <li><b>the box</b>: save a copy of every recipe (.json, or readable text as .md), or add some back from .json files.</li>
       </ul>
       <span className="pop-title">why I made it</span>
       <p>
@@ -44,7 +44,7 @@ function HelpNote() {
 }
 
 export function JamJar({
-  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, onImportFiles, glowPalette, onGlowPalette,
+  sortBy, onSortBy, recipeFont, onRecipeFont, desk, onDesk, onExportAll, onExportMarkdown, onImportFiles, glowPalette, onGlowPalette,
 }: {
   sortBy: SortBy;
   onSortBy: (sortBy: SortBy) => void;
@@ -55,6 +55,8 @@ export function JamJar({
   onDesk: (patch: Partial<Pick<Settings, 'showNewCard' | 'showFind'>>) => void;
   /** Save every recipe as a .json file. */
   onExportAll: () => void;
+  /** Save every recipe as one .md file. */
+  onExportMarkdown: () => void;
   /** Add recipes from exported .json files; resolves to a line saying what happened. */
   onImportFiles: (files: File[]) => Promise<string>;
   /** The colours the cursor glow drifts between. */
@@ -168,6 +170,10 @@ export function JamJar({
               <button type="button" className="sort-option file-option" onClick={onExportAll}>
                 <PenIcon name="export" />
                 <span className="sort-label">save a copy <small>.json</small></span>
+              </button>
+              <button type="button" className="sort-option file-option" onClick={onExportMarkdown}>
+                <PenIcon name="export" />
+                <span className="sort-label">save as text <small>.md</small></span>
               </button>
               <button type="button" className="sort-option file-option" onClick={() => fileRef.current?.click()}>
                 <PenIcon name="import" />

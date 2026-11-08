@@ -4,6 +4,7 @@ import { PenIcon } from './PenIcons';
 import { PenCircle } from './ink';
 import { useDismiss } from '../useDismiss';
 import { CATEGORIES } from '../types';
+import { InkSelect } from './InkSelect';
 
 /**
  * A little stack of blank cotton cards beside the rolodex. Pulling the top one starts a new
@@ -100,21 +101,24 @@ export function SurpriseTag({
                 {options.includeCooked && <PenCircle variant={2} />}
               </span>
             </label>
-            <label className="surprise-field">
-              meal
-              <select className="ink-input ink-select" value={options.category} onChange={(e) => setOptions((o) => ({ ...o, category: e.target.value }))}>
-                <option value="">any</option>
-                {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-                <option value="unsorted">unsorted</option>
-              </select>
-            </label>
-            <label className="surprise-field">
-              cuisine
-              <select className="ink-input ink-select" value={options.cuisine} onChange={(e) => setOptions((o) => ({ ...o, cuisine: e.target.value }))}>
-                <option value="">any</option>
-                {cuisines.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </label>
+            <div className="surprise-field">
+              <span>meal</span>
+<InkSelect
+                label="Meal"
+                value={options.category}
+                onChange={(category) => setOptions((o) => ({ ...o, category }))}
+                options={[{ value: '', label: 'any' }, ...CATEGORIES.map((c) => ({ value: c.key, label: c.label })), { value: 'unsorted', label: 'unsorted' }]}
+              />
+            </div>
+            <div className="surprise-field">
+              <span>cuisine</span>
+<InkSelect
+                label="Cuisine"
+                value={options.cuisine}
+                onChange={(cuisine) => setOptions((o) => ({ ...o, cuisine }))}
+                options={[{ value: '', label: 'any' }, ...cuisines.map((c) => ({ value: c, label: c }))]}
+              />
+            </div>
           </div>
         </div>
       )}

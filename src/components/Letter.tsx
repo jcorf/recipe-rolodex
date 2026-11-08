@@ -4,9 +4,10 @@ import { servesLabel, splitAmount, stepText } from '../recipeText';
 import { cardLook, InkFrame, InkRule } from './ink';
 import { HOLDER } from './inkPaths';
 import { PenIcon, type PenIconName } from './PenIcons';
-import { exportOne } from '../exportRecipes';
+import { exportOne, exportOneMarkdown } from '../exportRecipes';
 import { GinghamBow, PatchHeart } from './Stickers';
 import { StarRating } from './StarRating';
+import { InkSelect } from './InkSelect';
 
 /**
  * The open recipe: the rolodex card pulled out of the box and enlarged, standing in a
@@ -265,10 +266,12 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
                   <div className="meta-fields">
                     <label>
                       filed under
-                      <select className="ink-input ink-select" value={form.category} onChange={set('category')}>
-                        <option value="">unsorted</option>
-                        {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-                      </select>
+<InkSelect
+                        label="Filed under"
+                        value={form.category}
+                        onChange={(category) => setForm((f) => ({ ...f, category: category as Category | '' }))}
+                        options={[{ value: '', label: 'unsorted' }, ...CATEGORIES.map((c) => ({ value: c.key, label: c.label }))]}
+                      />
                     </label>
                     <label>time <input className="ink-input" value={form.totalTime} onChange={set('totalTime')} placeholder="e.g. 30 min" /></label>
                     <label>serves <input className="ink-input" value={form.servings} onChange={set('servings')} placeholder="e.g. 4" /></label>
@@ -373,6 +376,7 @@ export function Letter({ recipe, isNew, notice, onSave, onImport, onDelete, onCl
           <>
             <ActionTag icon="edit" label="edit card" onClick={() => setEditing(true)} />
             {!isNew && <ActionTag icon="export" label="export card (.json)" onClick={() => exportOne(recipe as Recipe)} />}
+            {!isNew && <ActionTag icon="export" label="export card (.md)" onClick={() => exportOneMarkdown(recipe as Recipe)} />}
             {!isNew && (
               <ActionTag icon="tear" label="tear up card" tone="quiet" onClick={() => setConfirmTear(true)} />
             )}

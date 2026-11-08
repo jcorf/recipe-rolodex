@@ -1,7 +1,8 @@
-import type { Recipe } from './types';
+import { CATEGORIES, type Recipe } from './types';
+import { ratingLabel, servesLabel, stepText } from './recipeText';
 
-function download(filename: string, data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+function download(filename: string, data: unknown, type = 'application/json') {
+  const blob = new Blob([typeof data === 'string' ? data : JSON.stringify(data, null, 2)], { type });
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement('a'), { href: url, download: filename });
   document.body.append(a);
@@ -63,4 +64,27 @@ export function importMessage({ added, skipped, invalid }: ImportSummary) {
   if (skipped) parts.push(`${skipped} already in the box`);
   if (invalid) parts.push(`${invalid} couldn’t be read`);
   return parts.join(' · ');
+}
+
+/** One recipe as markdown: title, a line of details, the note, ingredients, numbered directions. */
+export function recipeToMarkdown(r: Recipe) {
+  const meal = CATEGORIES.find((c) => c.key === r.category)?.label;
+  const details = [meal, r.cuisine, r.totalTime, servesLabel(r.servings), r.rating ? ratingLabel(r.rating) : ''].filter(Boolean);
+  const out = [`# ${r.title}`];
+  if (details.length) out.push(`*${details.join(' · ')}*`);
+  if (r.sourceUrl) out.push(`From [${r.sourceName && r.sourceName !== 'sample card' ? r.sourceName : r.sourceUrl}](${r.sourceUrl})`);
+  if (r.review) out.push(r.review.split('\n').map((l) => `> ${l}`).join('\n'));
+  out.push('## Ingredients', r.ingredients.length ? r.ingredients.map((i) => `- ${i}`).join('\n') : '_none written down yet_');
+  out.push('## Directions', r.steps.length ? r.steps.map((s, n) => `${n + 1}. ${stepText(s)}`).join('\n') : '_none written down yet_');
+  return out.join('\n\n') + '\n';
+}
+
+/** Every recipe in the box as one my-recipes-YYYY-MM-DD.md, a rule between cards. */
+export function exportAllMarkdown(recipes: Recipe[]) {
+  download(`my-recipes-${today()}.md`, recipes.map(recipeToMarkdown).join('\n---\n\n'), 'text/markdown');
+}
+
+/** One recipe, as its-name.md. */
+export function exportOneMarkdown(recipe: Recipe) {
+  download(`${slug(recipe.title)}.md`, recipeToMarkdown(recipe), 'text/markdown');
 }
