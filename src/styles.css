@@ -1971,6 +1971,7 @@ button.day-cell:hover { background: radial-gradient(closest-side, rgb(255 254 25
 .visit-list li.is-moving { background: rgb(255 254 250 / 0.7); }
 /* what you had is asked for: its line is drawn in red until something's written on it */
 .visit-pop .ink-input.is-needed { border-bottom: 1.5px solid var(--enamel); }
+.visit-pop .ink-input.is-needed::placeholder { color: var(--enamel); opacity: 0.85; } /* the question itself, in red */
 .visit-pop .ink-input.is-asking { animation: ask 0.4s var(--ease-out); }
 @keyframes ask { 25% { translate: -4px 0; } 50% { translate: 3px 0; } 75% { translate: -2px 0; } }
 .visit-dish-input { flex: 1; min-width: 0; font-family: var(--hand); font-size: 1.1rem; line-height: 1.1; }
